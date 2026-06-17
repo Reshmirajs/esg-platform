@@ -1,0 +1,1436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESG Platform - Manage, Measure, Make an Impact</title>
+  <meta name="description" content="A unified corporate ESG platform for carbon emission, water usage, social data, and governance metrics data collection and reporting.">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- CSS -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ================= AUTHENTICATION SCREEN ================= -->
+  <div id="login-screen" class="auth-container">
+    <div class="auth-left">
+      <div class="auth-left-content">
+        <div class="brand-logo">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM13 17H11V15H13V17ZM13 13H11V7H13V13Z" fill="currentColor" style="display:none;" />
+            <!-- Custom Leaf SVG Logo -->
+            <path d="M2 22C2 22 6 18 12 18C18 18 22 22 22 22M12 2C12 2 4 6 4 14C4 18.5 7.5 21 12 21C16.5 21 20 18.5 20 14C20 6 12 2 12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 2V21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span class="brand-name">ESG Platform</span>
+        </div>
+        
+        <h1 class="auth-slogan">Manage. Measure. Make an Impact.</h1>
+        <p class="auth-description">A unified platform for ESG data management and reporting.</p>
+        
+        <!-- Full-bleed background applied via CSS -->
+      </div>
+      <div class="auth-footer">
+        <p>&copy; 2026 ESG Platform. All rights reserved.</p>
+      </div>
+    </div>
+    
+    <div class="auth-right">
+      <div class="auth-form-wrapper">
+        <div class="auth-header">
+          <h2>Welcome Back!</h2>
+          <p>Sign in to your account</p>
+        </div>
+        
+        <form id="login-form" onsubmit="event.preventDefault(); handleLogin();">
+          <div class="form-group">
+            <label for="username">Username</label>
+            <div class="input-icon-wrapper">
+              <i data-lucide="user" class="input-icon"></i>
+              <input type="text" id="username" placeholder="Enter your username" required value="tara.analyst">
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="password">Password</label>
+            <div class="input-icon-wrapper">
+              <i data-lucide="lock" class="input-icon"></i>
+              <input type="password" id="password" placeholder="Enter your password" required value="••••••••">
+              <button type="button" class="password-toggle" onclick="togglePasswordVisibility()" aria-label="Toggle password visibility">
+                <i data-lucide="eye" id="password-toggle-icon"></i>
+              </button>
+            </div>
+          </div>
+          
+          <div class="form-options">
+            <label class="checkbox-container">
+              <input type="checkbox" id="remember-me" checked>
+              <span class="checkmark"></span>
+              Remember me
+            </label>
+            <a href="#" class="forgot-password-link" onclick="alert('Password reset link simulated. Check console or localStorage.')">Forgot Password?</a>
+          </div>
+          
+          <button type="submit" class="btn btn-primary btn-block">Login</button>
+        </form>
+        
+        <div class="auth-divider">
+          <span>or</span>
+        </div>
+        
+        <button class="btn btn-outline btn-block" onclick="handleSSOLogin()">
+          <i data-lucide="shield-check" class="btn-icon"></i>
+          Sign in with SSO
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ================= MAIN APPLICATION SYSTEM ================= -->
+  <div id="app-screen" class="app-container hidden">
+    
+    <!-- LEFT SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand-logo">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 22C2 22 6 18 12 18C18 18 22 22 22 22M12 2C12 2 4 6 4 14C4 18.5 7.5 21 12 21C16.5 21 20 18.5 20 14C20 6 12 2 12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 2V21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span class="brand-name">ESG Platform</span>
+        </div>
+        <button class="sidebar-close-btn" onclick="toggleSidebar(false)" aria-label="Close Sidebar">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      
+      <nav class="sidebar-nav">
+        <ul>
+          <li>
+            <a href="#" id="nav-dashboard" class="nav-item active" onclick="switchTab('dashboard')">
+              <i data-lucide="layout-dashboard"></i>
+              <span>Dashboard</span>
+            </a>
+          </li>
+          <li>
+            <a href="#" id="nav-data-collection" class="nav-item" onclick="switchTab('data-collection')">
+              <i data-lucide="database"></i>
+              <span>ESG Data Collection</span>
+            </a>
+          </li>
+          <li>
+            <a href="#" id="nav-my-esg-data" class="nav-item" onclick="switchTab('my-esg-data')">
+              <i data-lucide="bar-chart-3"></i>
+              <span>My ESG Data</span>
+            </a>
+          </li>
+          <li>
+            <a href="#" id="nav-data-validation" class="nav-item" onclick="switchTab('data-validation')">
+              <i data-lucide="check-square"></i>
+              <span>Data Validation</span>
+              <span id="validation-badge" class="badge">18</span>
+            </a>
+          </li>
+          <li>
+            <a href="#" id="nav-reports" class="nav-item" onclick="switchTab('reports')">
+              <i data-lucide="file-text"></i>
+              <span>Reports</span>
+            </a>
+          </li>
+          <li>
+            <a href="#" id="nav-settings" class="nav-item" onclick="switchTab('settings')">
+              <i data-lucide="settings"></i>
+              <span>Settings</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+      
+      <div class="sidebar-footer">
+        <a href="#" class="nav-item" onclick="switchTab('help')">
+          <i data-lucide="help-circle"></i>
+          <span>Help & Support</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- MAIN APP WRAPPER -->
+    <div class="app-main">
+      
+      <!-- HEADER -->
+      <header class="app-header">
+        <div class="header-left">
+          <button class="sidebar-toggle-btn" onclick="toggleSidebar(true)" aria-label="Open Sidebar">
+            <i data-lucide="menu"></i>
+          </button>
+          <h2 id="page-title" class="page-title">Dashboard</h2>
+        </div>
+        
+        <div class="header-right">
+          <!-- Notification Bell -->
+          <div class="notification-wrapper">
+            <button class="icon-btn" onclick="toggleNotifications()" aria-label="Notifications">
+              <i data-lucide="bell"></i>
+              <span class="notification-badge">3</span>
+            </button>
+            <div id="notification-dropdown" class="dropdown-menu hidden">
+              <div class="dropdown-header">
+                <h3>Notifications</h3>
+                <a href="#" onclick="clearNotifications()">Clear all</a>
+              </div>
+              <ul id="notification-list">
+                <li class="unread">
+                  <i data-lucide="alert-triangle" class="text-warning"></i>
+                  <div class="notification-body">
+                    <p><strong>Validation Error:</strong> REC-002 carbon value invalid.</p>
+                    <span>10 mins ago</span>
+                  </div>
+                </li>
+                <li class="unread">
+                  <i data-lucide="alert-circle" class="text-error"></i>
+                  <div class="notification-body">
+                    <p><strong>Missing Data:</strong> REC-004 IT social data missing.</p>
+                    <span>1 hour ago</span>
+                  </div>
+                </li>
+                <li>
+                  <i data-lucide="check-circle-2" class="text-success"></i>
+                  <div class="notification-body">
+                    <p><strong>Approved:</strong> REC-003 Finance data approved.</p>
+                    <span>Yesterday</span>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+          
+          <!-- User Profile Dropdown -->
+          <div class="user-profile-wrapper">
+            <button class="profile-trigger" onclick="toggleProfileMenu()">
+              <div class="avatar">TA</div>
+              <div class="user-info">
+                <span class="user-name">Tara</span>
+                <span class="user-role">ESG Analyst</span>
+              </div>
+              <i data-lucide="chevron-down" class="profile-arrow"></i>
+            </button>
+            <div id="profile-dropdown" class="dropdown-menu hidden">
+              <div class="dropdown-user-details">
+                <span class="user-fullname">Tara Alston</span>
+                <span class="user-email">tara.alston@esgplatform.com</span>
+              </div>
+              <hr>
+              <a href="#" onclick="switchTab('settings')"><i data-lucide="settings"></i>Settings</a>
+              <a href="#" onclick="switchTab('help')"><i data-lucide="help-circle"></i>Support</a>
+              <hr>
+              <a href="#" onclick="handleLogout()" class="text-danger"><i data-lucide="log-out"></i>Logout</a>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- MAIN SCROLLABLE CONTENT -->
+      <main class="app-content-container">
+        
+        <!-- ================= VIEW: DASHBOARD ================= -->
+        <section id="dashboard-view" class="view-panel active">
+          <div class="welcome-banner">
+            <div>
+              <h3>Welcome back, Tara!</h3>
+              <p>Here's what's happening with your ESG data.</p>
+            </div>
+          </div>
+          
+          <!-- KPI Metrics Row -->
+          <div class="kpi-grid">
+            <div class="kpi-card" onclick="switchTab('my-esg-data')">
+              <div class="kpi-header">
+                <span class="kpi-title">Total ESG Records</span>
+                <div class="kpi-icon-wrapper"><i data-lucide="database"></i></div>
+              </div>
+              <div class="kpi-value" id="kpi-total-records">124</div>
+              <div class="kpi-trend trend-up">
+                <i data-lucide="arrow-up-right"></i>
+                <span>12 this month</span>
+              </div>
+            </div>
+            
+            <div class="kpi-card" onclick="switchTab('data-validation')">
+              <div class="kpi-header">
+                <span class="kpi-title">Pending Validation</span>
+                <div class="kpi-icon-wrapper text-warning"><i data-lucide="clock"></i></div>
+              </div>
+              <div class="kpi-value" id="kpi-pending-validation">18</div>
+              <div class="kpi-trend trend-down">
+                <i data-lucide="arrow-down-right"></i>
+                <span>4 from yesterday</span>
+              </div>
+            </div>
+            
+            <div class="kpi-card" onclick="switchTab('my-esg-data', 'Approved')">
+              <div class="kpi-header">
+                <span class="kpi-title">Approved Data</span>
+                <div class="kpi-icon-wrapper text-success"><i data-lucide="shield-check"></i></div>
+              </div>
+              <div class="kpi-value" id="kpi-approved-data">97</div>
+              <div class="kpi-trend trend-up">
+                <i data-lucide="arrow-up-right"></i>
+                <span>8 this month</span>
+              </div>
+            </div>
+            
+            <div class="kpi-card" onclick="switchTab('reports')">
+              <div class="kpi-header">
+                <span class="kpi-title">Reports Generated</span>
+                <div class="kpi-icon-wrapper"><i data-lucide="file-text"></i></div>
+              </div>
+              <div class="kpi-value" id="kpi-reports">9</div>
+              <div class="kpi-trend trend-up">
+                <i data-lucide="arrow-up-right"></i>
+                <span>2 this month</span>
+              </div>
+            </div>
+            
+            <div class="kpi-card text-danger-card" onclick="switchTab('data-validation', 'Pending')">
+              <div class="kpi-header">
+                <span class="kpi-title">Data Issues</span>
+                <div class="kpi-icon-wrapper text-danger"><i data-lucide="alert-triangle"></i></div>
+              </div>
+              <div class="kpi-value" id="kpi-data-issues">4</div>
+              <div class="kpi-trend trend-down">
+                <i data-lucide="arrow-down-right"></i>
+                <span>3 from yesterday</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Charts & Activities Grid -->
+          <div class="dashboard-grid-row">
+            <!-- Left: Chart Panel -->
+            <div class="card chart-panel-card">
+              <div class="card-header">
+                <h3 class="card-title">ESG Data Overview</h3>
+                <div class="card-actions">
+                  <select id="chart-filter-category" class="select-sm" onchange="updateDashboardCharts()">
+                    <option value="all">By Category</option>
+                    <option value="environmental">Environmental Only</option>
+                    <option value="social">Social Only</option>
+                    <option value="governance">Governance Only</option>
+                  </select>
+                  <select id="chart-filter-period" class="select-sm" onchange="updateDashboardCharts()">
+                    <option value="q1-2026">Q1 2026</option>
+                    <option value="q4-2025">Q4 2025</option>
+                    <option value="full-2025">Full Year 2025</option>
+                  </select>
+                </div>
+              </div>
+              <div class="card-body chart-container-layout">
+                <!-- Bar Chart Wrapper -->
+                <div class="main-bar-chart">
+                  <canvas id="esgOverviewBarChart"></canvas>
+                </div>
+                <!-- Donut Chart Wrapper -->
+                <div class="secondary-donut-chart-layout">
+                  <div class="donut-chart-canvas-wrapper">
+                    <canvas id="esgOverviewDonutChart"></canvas>
+                    <div class="donut-chart-center-text">
+                      <span id="donut-total-val">124</span>
+                      <span>Total Records</span>
+                    </div>
+                  </div>
+                  <div class="donut-legend">
+                    <div class="legend-item">
+                      <span class="legend-dot bg-environmental"></span>
+                      <span class="legend-label">Environmental</span>
+                      <span class="legend-pct" id="legend-env-val">80 (64.5%)</span>
+                    </div>
+                    <div class="legend-item">
+                      <span class="legend-dot bg-social"></span>
+                      <span class="legend-label">Social</span>
+                      <span class="legend-pct" id="legend-soc-val">60 (24.2%)</span>
+                    </div>
+                    <div class="legend-item">
+                      <span class="legend-dot bg-governance"></span>
+                      <span class="legend-label">Governance</span>
+                      <span class="legend-pct" id="legend-gov-val">40 (11.3%)</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Right: Recent Activities -->
+            <div class="card recent-activities-card">
+              <div class="card-header">
+                <h3 class="card-title">Recent Activities</h3>
+                <button class="btn btn-text btn-sm" onclick="switchTab('data-validation')">View All</button>
+              </div>
+              <div class="card-body">
+                <div class="table-responsive">
+                  <table class="table table-sm">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Action</th>
+                        <th>Department</th>
+                        <th>Time</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody id="recent-activities-table-body">
+                      <!-- Filled dynamically -->
+                      <tr>
+                        <td>REC-001</td>
+                        <td>Data submitted</td>
+                        <td>Operations</td>
+                        <td>2 hrs ago</td>
+                        <td><span class="badge badge-pending">Pending</span></td>
+                      </tr>
+                      <tr>
+                        <td>REC-002</td>
+                        <td>Report generated</td>
+                        <td>HR</td>
+                        <td>4 hrs ago</td>
+                        <td><span class="badge badge-success">Done</span></td>
+                      </tr>
+                      <tr>
+                        <td>REC-003</td>
+                        <td>Data approved</td>
+                        <td>Finance</td>
+                        <td>Yesterday</td>
+                        <td><span class="badge badge-approved">Approved</span></td>
+                      </tr>
+                      <tr>
+                        <td>REC-004</td>
+                        <td>Data rejected</td>
+                        <td>IT</td>
+                        <td>Yesterday</td>
+                        <td><span class="badge badge-rejected">Rejected</span></td>
+                      </tr>
+                      <tr>
+                        <td>REC-005</td>
+                        <td>Excel imported</td>
+                        <td>Procurement</td>
+                        <td>2 days ago</td>
+                        <td><span class="badge badge-pending">Pending</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Quick Actions Row -->
+          <div class="quick-actions-section">
+            <h3 class="section-title">Quick Actions</h3>
+            <div class="quick-actions-grid">
+              <button class="action-card-btn" onclick="switchTab('data-collection', 'manual')">
+                <div class="action-card-icon"><i data-lucide="file-edit"></i></div>
+                <div class="action-card-details">
+                  <h4>New Data Entry</h4>
+                  <p>Add new ESG data manually</p>
+                </div>
+              </button>
+              
+              <button class="action-card-btn" onclick="switchTab('data-validation')">
+                <div class="action-card-icon text-warning"><i data-lucide="clipboard-check"></i></div>
+                <div class="action-card-details">
+                  <h4>Review Pending (18)</h4>
+                  <p>Validate pending records</p>
+                </div>
+              </button>
+              
+              <button class="action-card-btn" onclick="switchTab('reports')">
+                <div class="action-card-icon text-success"><i data-lucide="bar-chart-4"></i></div>
+                <div class="action-card-details">
+                  <h4>Generate Report</h4>
+                  <p>Create custom ESG reports</p>
+                </div>
+              </button>
+              
+              <button class="action-card-btn" onclick="switchTab('data-collection', 'import')">
+                <div class="action-card-icon text-info"><i data-lucide="upload-cloud"></i></div>
+                <div class="action-card-details">
+                  <h4>Import Excel</h4>
+                  <p>Import ESG data templates</p>
+                </div>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Bottom Quality & Tasks Row -->
+          <div class="dashboard-grid-row mt-4">
+            <!-- Quality Card -->
+            <div class="card half-card">
+              <div class="card-header">
+                <h3 class="card-title">Data Quality Summary</h3>
+                <button class="btn btn-text btn-sm" onclick="switchTab('data-validation')">View Details</button>
+              </div>
+              <div class="card-body">
+                <div class="quality-grid">
+                  <div class="quality-item">
+                    <div class="quality-label">
+                      <span>Complete Records</span>
+                      <strong id="quality-complete-pct">77.4%</strong>
+                    </div>
+                    <div class="progress-bar-container">
+                      <div class="progress-bar" id="quality-complete-bar" style="width: 77.4%;"></div>
+                    </div>
+                    <div class="quality-subtext" id="quality-complete-count">96 Records</div>
+                  </div>
+                  
+                  <div class="quality-item">
+                    <div class="quality-label">
+                      <span>Missing Data</span>
+                      <strong id="quality-missing-pct">11.3%</strong>
+                    </div>
+                    <div class="progress-bar-container">
+                      <div class="progress-bar warning-bar" id="quality-missing-bar" style="width: 11.3%;"></div>
+                    </div>
+                    <div class="quality-subtext" id="quality-missing-count">14 Records</div>
+                  </div>
+                  
+                  <div class="quality-item">
+                    <div class="quality-label">
+                      <span>Errors Found</span>
+                      <strong id="quality-errors-pct">8.1%</strong>
+                    </div>
+                    <div class="progress-bar-container">
+                      <div class="progress-bar danger-bar" id="quality-errors-bar" style="width: 8.1%;"></div>
+                    </div>
+                    <div class="quality-subtext" id="quality-errors-count">10 Records</div>
+                  </div>
+                  
+                  <div class="quality-item">
+                    <div class="quality-label">
+                      <span>Duplicates</span>
+                      <strong id="quality-duplicates-pct">3.2%</strong>
+                    </div>
+                    <div class="progress-bar-container">
+                      <div class="progress-bar info-bar" id="quality-duplicates-bar" style="width: 3.2%;"></div>
+                    </div>
+                    <div class="quality-subtext" id="quality-duplicates-count">4 Records</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Tasks Card -->
+            <div class="card half-card">
+              <div class="card-header">
+                <h3 class="card-title">Upcoming Tasks</h3>
+                <button class="btn btn-text btn-sm" id="btn-add-task" onclick="addNewTask()">Add Task</button>
+              </div>
+              <div class="card-body">
+                <ul class="task-checklist" id="upcoming-tasks-list">
+                  <li>
+                    <label class="checkbox-container strikethrough">
+                      <input type="checkbox" onchange="toggleTaskState(this)" checked>
+                      <span class="checkmark"></span>
+                      Validate 18 pending records
+                    </label>
+                    <span class="task-date"><i data-lucide="calendar"></i> Jun 2, 2026</span>
+                  </li>
+                  <li>
+                    <label class="checkbox-container">
+                      <input type="checkbox" onchange="toggleTaskState(this)">
+                      <span class="checkmark"></span>
+                      Review carbon data anomalies
+                    </label>
+                    <span class="task-date"><i data-lucide="calendar"></i> Jun 3, 2026</span>
+                  </li>
+                  <li>
+                    <label class="checkbox-container">
+                      <input type="checkbox" onchange="toggleTaskState(this)">
+                      <span class="checkmark"></span>
+                      Generate Q1 2026 ESG Summary Report
+                    </label>
+                    <span class="task-date"><i data-lucide="calendar"></i> Jun 5, 2026</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ================= VIEW: ESG DATA COLLECTION ================= -->
+        <section id="data-collection-view" class="view-panel">
+          <div class="collection-toggle-header">
+            <div class="toggle-tabs">
+              <button id="btn-toggle-import" class="tab-btn active" onclick="switchCollectionTab('import')">Import Excel</button>
+              <button id="btn-toggle-manual" class="tab-btn" onclick="switchCollectionTab('manual')">Manual Entry</button>
+            </div>
+          </div>
+          
+          <!-- PANEL A: IMPORT EXCEL (AI IMPORT) -->
+          <div id="import-excel-panel" class="collection-panel-tab active">
+            <div class="collection-intro">
+              <h3>ESG Data Collection</h3>
+              <p>Import ESG data using Excel / CSV</p>
+            </div>
+            
+            <!-- Import Flow Stepper -->
+            <div class="stepper">
+              <div class="step active" id="import-step-1">
+                <div class="step-num">1</div>
+                <span class="step-name">Upload File</span>
+              </div>
+              <div class="step-line" id="import-step-line-1"></div>
+              <div class="step" id="import-step-2">
+                <div class="step-num">2</div>
+                <span class="step-name">Map & Validate</span>
+              </div>
+              <div class="step-line" id="import-step-line-2"></div>
+              <div class="step" id="import-step-3">
+                <div class="step-num">3</div>
+                <span class="step-name">Review & Confirm</span>
+              </div>
+            </div>
+            
+            <div id="import-upload-container">
+              <div class="import-layout">
+                <!-- Drag and drop zone -->
+                <div class="drag-drop-container" id="drop-zone" onclick="triggerFileSelect()">
+                  <div class="drag-drop-inner">
+                    <i data-lucide="upload-cloud" class="upload-icon"></i>
+                    <h3>Drag & drop your file here</h3>
+                    <span class="divider-text">or</span>
+                    <button type="button" class="btn btn-outline">Browse Files</button>
+                    <p class="file-formats">Supported formats: .xlsx, .xls, .csv</p>
+                    <input type="file" id="file-input" class="hidden" accept=".xlsx,.xls,.csv" onchange="handleFileSelected(event)">
+                  </div>
+                  
+                  <!-- Upload status preview -->
+                  <div id="upload-progress-container" class="hidden" onclick="event.stopPropagation();">
+                    <div class="file-details-box">
+                      <i data-lucide="file-spreadsheet" class="file-icon text-success"></i>
+                      <div class="file-name-size">
+                        <span id="selected-file-name">esg_data_2026_q1.csv</span>
+                        <span id="selected-file-size">45 KB</span>
+                      </div>
+                      <button class="icon-btn text-danger" onclick="cancelUploadedFile()" aria-label="Remove File">
+                        <i data-lucide="trash-2"></i>
+                      </button>
+                    </div>
+                    <div class="progress-bar-container mt-2">
+                      <div class="progress-bar bg-success" id="file-upload-progress" style="width: 100%;"></div>
+                    </div>
+                    <span class="upload-status-text">Upload completed successfully!</span>
+                  </div>
+                </div>
+                
+                <!-- Side Options -->
+                <div class="card import-options-card">
+                  <div class="card-header">
+                    <h3 class="card-title">Import Method</h3>
+                  </div>
+                  <div class="card-body">
+                    <div class="import-option-item">
+                      <strong>Standard ESG Template</strong>
+                      <p class="option-description mt-2">Imports data conforming to the standard ESG platform structures. Ensure column mappings match your database requirements.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="collection-footer">
+                <a href="#" class="btn-template-download" onclick="downloadESGTemplate()"><i data-lucide="help-circle"></i> Need a template? <span class="underline">Download ESG Template</span> <i data-lucide="download"></i></a>
+                
+                <div class="action-buttons">
+                  <button class="btn btn-outline" onclick="resetImportFlow()">Cancel</button>
+                  <button class="btn btn-primary" id="btn-next-step" onclick="proceedToMappingStep()" disabled>Next: Map Columns <i data-lucide="arrow-right"></i></button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Column Mapping & Validation Preview Panel (hidden by default) -->
+            <div id="import-mapping-preview-container" class="mapping-preview-container hidden">
+              <div class="collection-intro">
+                <h3>Step 2: Map Columns & Run Validation Checks</h3>
+                <p>Review how spreadsheet columns correspond to platform ESG attributes. Click Validate to review parsed data for rule conformity before importing.</p>
+              </div>
+              
+              <table class="mapping-table">
+                <thead>
+                  <tr>
+                    <th>Spreadsheet Header</th>
+                    <th>Data Type</th>
+                    <th>Target ESG Attribute</th>
+                  </tr>
+                </thead>
+                <tbody id="mapping-table-tbody">
+                  <!-- Populated dynamically based on uploaded CSV headers -->
+                </tbody>
+              </table>
+              
+              <div class="mt-4">
+                <button type="button" class="btn btn-primary" id="btn-import-validate" onclick="runImportDataValidation()">
+                  <i data-lucide="shield-alert"></i> Validate Imported Data
+                </button>
+              </div>
+              
+              <!-- Preview Table Wrapper (appears after clicking Validate) -->
+              <div id="import-preview-wrapper" class="import-preview-wrapper hidden">
+                <h4 class="preview-grid-title">Parsed Data Preview & Validation Status</h4>
+                <div class="import-preview-table-container">
+                  <table class="import-preview-table">
+                    <thead>
+                      <tr>
+                        <th>Row ID</th>
+                        <th>Department</th>
+                        <th>Reporting Period</th>
+                        <th>Carbon (tCO2e)</th>
+                        <th>Energy (kWh)</th>
+                        <th>Water (m3)</th>
+                        <th>Validation Status</th>
+                      </tr>
+                    </thead>
+                    <tbody id="import-preview-tbody">
+                      <!-- Filled by JS -->
+                    </tbody>
+                  </table>
+                </div>
+                
+                <!-- Validation Status Summary Card -->
+                <div id="import-validation-summary" class="validation-feedback-card">
+                  <!-- Populated by JS -->
+                </div>
+              </div>
+
+              <!-- Actions inside mapping view -->
+              <div class="form-actions-bar mt-4" style="display:flex; justify-content: flex-end; gap:0.75rem; border-top: 1px solid var(--border-color); padding-top: 1.25rem;">
+                <button type="button" class="btn btn-outline" onclick="goBackToUpload()">Back to Upload</button>
+                <button type="button" class="btn btn-primary" id="btn-import-confirm" onclick="proceedToReviewConfirmStep()" disabled>
+                  Import & Proceed <i data-lucide="check"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- PANEL B: MANUAL ENTRY FORM -->
+          <div id="manual-entry-panel" class="collection-panel-tab">
+            <div class="collection-intro">
+              <h3>ESG Data Collection &ndash; Manual Entry</h3>
+              <p>Enter ESG data manually through the form below.</p>
+              <span class="required-indicator-text">* Indicates required field</span>
+            </div>
+            
+            <form id="manual-entry-form" onsubmit="event.preventDefault(); submitManualData();">
+              <div class="form-row">
+                <div class="form-group half-width">
+                  <label for="form-department">Department <span class="text-danger">*</span></label>
+                  <select id="form-department" required>
+                    <option value="" disabled selected>Select Department</option>
+                    <option value="Operations">Operations</option>
+                    <option value="HR">HR</option>
+                    <option value="Finance">Finance</option>
+                    <option value="IT">IT</option>
+                    <option value="Procurement">Procurement</option>
+                    <option value="Facilities">Facilities</option>
+                  </select>
+                </div>
+                
+                <div class="form-group half-width">
+                  <label for="form-period">Reporting Period <span class="text-danger">*</span></label>
+                  <div class="input-icon-wrapper">
+                    <select id="form-period" required>
+                      <option value="" disabled selected>Select Reporting Period</option>
+                      <option value="Q1 2026">Q1 2026</option>
+                      <option value="Q2 2026">Q2 2026</option>
+                      <option value="Q3 2026">Q3 2026</option>
+                      <option value="Q4 2026">Q4 2026</option>
+                      <option value="Full Year 2025">Full Year 2025</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Environmental Data -->
+              <div class="form-section-card">
+                <div class="section-title-bar">
+                  <div class="icon-circle bg-environmental"><i data-lucide="leaf"></i></div>
+                  <h3>Environmental Data</h3>
+                </div>
+                <div class="section-form-grid">
+                  <div class="form-group">
+                    <label for="env-carbon">Carbon Emissions (tCO<sub>2</sub>e) <span class="text-danger">*</span></label>
+                    <div class="input-suffix-wrapper">
+                      <input type="number" step="0.01" min="0" id="env-carbon" placeholder="Enter value" required>
+                      <span class="suffix-label">tCO<sub>2</sub>e</span>
+                    </div>
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="env-energy">Energy Consumption (kWh) <span class="text-danger">*</span></label>
+                    <div class="input-suffix-wrapper">
+                      <input type="number" step="1" min="0" id="env-energy" placeholder="Enter value" required>
+                      <span class="suffix-label">kWh</span>
+                    </div>
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="env-water">Water Usage (m<sup>3</sup>) <span class="text-danger">*</span></label>
+                    <div class="input-suffix-wrapper">
+                      <input type="number" step="0.1" min="0" id="env-water" placeholder="Enter value" required>
+                      <span class="suffix-label">m<sup>3</sup></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Social Data -->
+              <div class="form-section-card">
+                <div class="section-title-bar">
+                  <div class="icon-circle bg-social"><i data-lucide="users"></i></div>
+                  <h3>Social Data</h3>
+                </div>
+                <div class="section-form-grid">
+                  <div class="form-group">
+                    <label for="soc-employees">Total Employees <span class="text-danger">*</span></label>
+                    <div class="input-suffix-wrapper">
+                      <input type="number" step="1" min="1" id="soc-employees" placeholder="Enter value" required>
+                      <span class="suffix-label">Number</span>
+                    </div>
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="soc-training">Training Hours <span class="text-danger">*</span></label>
+                    <div class="input-suffix-wrapper">
+                      <input type="number" step="0.5" min="0" id="soc-training" placeholder="Enter value" required>
+                      <span class="suffix-label">Hours</span>
+                    </div>
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="soc-incidents">Incidents Reported <span class="text-danger">*</span></label>
+                    <div class="input-suffix-wrapper">
+                      <input type="number" step="1" min="0" id="soc-incidents" placeholder="Enter value" required>
+                      <span class="suffix-label">Number</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Governance Data -->
+              <div class="form-section-card">
+                <div class="section-title-bar">
+                  <div class="icon-circle bg-governance"><i data-lucide="landmark"></i></div>
+                  <h3>Governance Data</h3>
+                </div>
+                <div class="section-form-grid">
+                  <div class="form-group">
+                    <label for="gov-meetings">Board Meetings Held <span class="text-danger">*</span></label>
+                    <div class="input-suffix-wrapper">
+                      <input type="number" step="1" min="0" id="gov-meetings" placeholder="Enter value" required>
+                      <span class="suffix-label">Number</span>
+                    </div>
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="gov-compliance">Compliance Rate (%) <span class="text-danger">*</span></label>
+                    <div class="input-suffix-wrapper">
+                      <input type="number" step="0.01" min="0" max="100" id="gov-compliance" placeholder="Enter value" required>
+                      <span class="suffix-label">%</span>
+                    </div>
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="gov-audits">Audits Completed <span class="text-danger">*</span></label>
+                    <div class="input-suffix-wrapper">
+                      <input type="number" step="1" min="0" id="gov-audits" placeholder="Enter value" required>
+                      <span class="suffix-label">Number</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Comments Textarea -->
+              <div class="form-group mt-4">
+                <label for="form-comments">Comments / Notes (Optional)</label>
+                <textarea id="form-comments" placeholder="Enter any additional comments..."></textarea>
+              </div>
+              
+              <!-- Validation Feedback Card -->
+              <div id="manual-validation-feedback" class="validation-feedback-card hidden">
+                <!-- Filled dynamically by JavaScript -->
+              </div>
+              
+              <!-- Form Actions -->
+              <div class="form-actions-bar">
+                <button type="button" class="btn btn-outline" onclick="saveFormDraft()"><i data-lucide="save"></i> Save Draft</button>
+                <button type="button" class="btn btn-outline text-danger" onclick="clearManualForm()"><i data-lucide="rotate-ccw"></i> Clear</button>
+                <button type="button" class="btn btn-outline" id="btn-manual-validate" onclick="validateManualFormInputs()"><i data-lucide="shield-check"></i> Validate Data</button>
+                <button type="submit" class="btn btn-primary"><i data-lucide="send"></i> Submit Data</button>
+              </div>
+            </form>
+          </div>
+        
+
+        </section>
+        <!-- ================= VIEW: MY ESG DATA ================= -->
+        <section id="my-esg-data-view" class="view-panel">
+          <div class="card">
+            <div class="card-header flex-column-mobile">
+              <h3 class="card-title">Approved Corporate ESG Records</h3>
+              <div class="card-actions flex-wrap-gap">
+                <select id="esg-filter-dept" class="select-sm" onchange="filterApprovedTable()">
+                  <option value="all">All Departments</option>
+                  <option value="Operations">Operations</option>
+                  <option value="HR">HR</option>
+                  <option value="Finance">Finance</option>
+                  <option value="IT">IT</option>
+                  <option value="Procurement">Procurement</option>
+                  <option value="Facilities">Facilities</option>
+                </select>
+                <button class="btn btn-outline btn-sm" onclick="exportApprovedCSV()"><i data-lucide="download"></i> Export CSV</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Record ID</th>
+                      <th>Department</th>
+                      <th>Period</th>
+                      <th>Carbon (tCO2e)</th>
+                      <th>Energy (kWh)</th>
+                      <th>Water (m3)</th>
+                      <th>Employees</th>
+                      <th>Approved Date</th>
+                    </tr>
+                  </thead>
+                  <tbody id="approved-table-body">
+                    <!-- Loaded dynamically -->
+                  </tbody>
+                </table>
+              </div>
+              <div id="approved-empty-state" class="empty-state hidden">
+                <i data-lucide="alert-circle" class="empty-icon"></i>
+                <p>No approved records found matching filters.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ================= VIEW: DATA VALIDATION ================= -->
+        <section id="data-validation-view" class="view-panel">
+          <div class="validation-top-filters">
+            <!-- Search -->
+            <div class="search-input-wrapper">
+              <i data-lucide="search" class="search-icon"></i>
+              <input type="text" id="validation-search" placeholder="Search records..." onkeyup="filterValidationTable()">
+            </div>
+            
+            <!-- Filter Options Toggle -->
+            <button class="btn btn-outline" id="btn-validation-filters" onclick="toggleValidationFiltersMenu()">
+              <i data-lucide="filter"></i>
+              <span>Filters</span>
+            </button>
+          </div>
+          
+          <!-- Stepper shown during import column mapping -->
+          <div class="stepper hidden" id="validation-mapping-stepper">
+            <div class="step completed">
+              <div class="step-num"><i data-lucide="check"></i></div>
+              <span class="step-name">Upload File</span>
+            </div>
+            <div class="step-line active"></div>
+            <div class="step active">
+              <div class="step-num">2</div>
+              <span class="step-name">Map Columns</span>
+            </div>
+            <div class="step-line"></div>
+            <div class="step">
+              <div class="step-num">3</div>
+              <span class="step-name">Review & Confirm</span>
+            </div>
+          </div>
+          
+          <div class="validation-content-layout">
+            <!-- Left Side: Table & Tab Controls -->
+            <div class="validation-main-card">
+              <!-- Tabs -->
+              <div class="validation-tabs-row">
+                <button id="val-tab-pending" class="tab-btn active" onclick="switchValidationTableTab('Pending')">Pending Review <span id="tab-badge-pending" class="badge">14</span></button>
+                <button id="val-tab-approved" class="tab-btn" onclick="switchValidationTableTab('Approved')">Approved <span id="tab-badge-approved" class="badge bg-success">10</span></button>
+                <button id="val-tab-rejected" class="tab-btn" onclick="switchValidationTableTab('Rejected')">Rejected <span id="tab-badge-rejected" class="badge bg-danger">0</span></button>
+                <button id="val-tab-all" class="tab-btn" onclick="switchValidationTableTab('All')">All Records <span id="tab-badge-all" class="badge bg-neutral">24</span></button>
+              </div>
+              
+              <div class="table-responsive">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Record ID</th>
+                      <th>Department</th>
+                      <th>Submitted On</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="validation-table-body">
+                    <!-- Rows filled by JS -->
+                  </tbody>
+                </table>
+              </div>
+              
+              <div id="validation-empty-state" class="empty-state hidden">
+                <i data-lucide="inbox" class="empty-icon"></i>
+                <p>No validation records found in this category.</p>
+              </div>
+              
+              <!-- Pagination -->
+              <div class="pagination-container">
+                <span class="pagination-info" id="pagination-info-text">Showing 1 to 6 of 18 entries</span>
+                <div class="pagination-buttons" id="pagination-pages-wrapper">
+                  <button class="pagination-btn disabled" aria-label="Previous page"><i data-lucide="chevron-left"></i></button>
+                  <button class="pagination-btn active">1</button>
+                  <button class="pagination-btn">2</button>
+                  <button class="pagination-btn">3</button>
+                  <button class="pagination-btn" aria-label="Next page"><i data-lucide="chevron-right"></i></button>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Right Side: Metrics & Validation Summary -->
+            <div class="validation-sidebar">
+              <!-- Summary Card -->
+              <div class="card summary-metrics-card">
+                <div class="card-header">
+                  <h3 class="card-title">Validation Summary</h3>
+                </div>
+                <div class="card-body">
+                  <ul class="summary-counters-list">
+                    <li>
+                      <span>Total Records</span>
+                      <strong id="val-sidebar-total">18</strong>
+                    </li>
+                    <li>
+                      <span>Pending</span>
+                      <strong id="val-sidebar-pending" class="text-warning">14</strong>
+                    </li>
+                    <li>
+                      <span>Errors Found</span>
+                      <strong id="val-sidebar-errors" class="text-danger">2</strong>
+                    </li>
+                    <li>
+                      <span>Missing Data</span>
+                      <strong id="val-sidebar-missing" class="text-warning">2</strong>
+                    </li>
+                    <li>
+                      <span>Approved</span>
+                      <strong id="val-sidebar-approved" class="text-success">10</strong>
+                    </li>
+                    <li>
+                      <span>Rejected</span>
+                      <strong id="val-sidebar-rejected" class="text-danger">0</strong>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+              
+              <!-- Errors Card -->
+              <div class="card errors-list-card mt-3">
+                <div class="card-header text-danger-header">
+                  <i data-lucide="alert-triangle"></i>
+                  <h3 class="card-title">Errors Found</h3>
+                </div>
+                <div class="card-body">
+                  <ul class="alerts-checklist" id="val-sidebar-errors-list">
+                    <li onclick="focusValidationRecord('REC-002')">
+                      <strong>REC-002:</strong> Invalid carbon value
+                    </li>
+                    <li onclick="focusValidationRecord('REC-002')">
+                      <strong>REC-002:</strong> Date out of range
+                    </li>
+                  </ul>
+                  <a href="#" class="view-all-alerts-link" onclick="switchValidationTableTab('Pending')">View all errors &rarr;</a>
+                </div>
+              </div>
+              
+              <!-- Alerts Card -->
+              <div class="card alerts-list-card mt-3">
+                <div class="card-header text-warning-header">
+                  <i data-lucide="alert-circle"></i>
+                  <h3 class="card-title">Missing Data Alerts</h3>
+                </div>
+                <div class="card-body">
+                  <ul class="alerts-checklist" id="val-sidebar-alerts-list">
+                    <li onclick="focusValidationRecord('REC-004')">
+                      <strong>REC-004:</strong> Social data missing
+                    </li>
+                    <li onclick="focusValidationRecord('REC-005')">
+                      <strong>REC-005:</strong> Governance incomplete
+                    </li>
+                  </ul>
+                  <a href="#" class="view-all-alerts-link" onclick="switchValidationTableTab('Pending')">View all alerts &rarr;</a>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Validation Page Footer Buttons -->
+          <div class="validation-footer-bar">
+            <button class="btn btn-outline" onclick="goBackToUpload()"><i data-lucide="arrow-left"></i> Back to Upload</button>
+            <div class="action-buttons">
+              <button class="btn btn-outline" onclick="saveValidationDraft()">Save Draft</button>
+              <button class="btn btn-primary" onclick="proceedToReviewConfirmStep()">Next: Review & Confirm <i data-lucide="arrow-right"></i></button>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ================= VIEW: REPORTS ================= -->
+        <section id="reports-view" class="view-panel">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Generate ESG Compliance Report</h3>
+            </div>
+            <div class="card-body">
+              <p>Configure and generate ESG reports based on validated corporate data.</p>
+              <form id="report-generator-form" onsubmit="event.preventDefault(); triggerGenerateReport();" class="mt-4">
+
+                <div class="form-row mt-4">
+                  <div class="form-group half-width">
+                    <label for="rep-type">Report Type</label>
+                    <select id="rep-type" required>
+                      <option value="Standard">Standard ESG Comprehensive Report</option>
+                      <option value="GRI">GRI Standard Alignment</option>
+                      <option value="TCFD">TCFD Carbon Risk Disclosure</option>
+                      <option value="Environmental">Environmental Deep-Dive Report</option>
+                    </select>
+                  </div>
+                  <div class="form-group half-width">
+                    <label for="rep-format">Output Format</label>
+                    <select id="rep-format" required>
+                      <option value="PDF">PDF Document (.pdf)</option>
+                      <option value="Excel">Excel Spreadsheet (.xlsx)</option>
+                      <option value="CSV">Comma Separated Values (.csv)</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div class="form-row mt-3">
+                  <div class="form-group half-width">
+                    <label for="rep-time-scope">Period Scope</label>
+                    <select id="rep-time-scope" required onchange="handleReportScopeChange()">
+                      <option value="Quarterly" selected>Quarterly</option>
+                      <option value="Annual">Annual (Financial Year)</option>
+                    </select>
+                  </div>
+                  <div class="form-group half-width">
+                    <label for="rep-time-period">Reporting Period</label>
+                    <select id="rep-time-period" required>
+                      <!-- Populated dynamically via JS -->
+                    </select>
+                  </div>
+                </div>
+                
+                <div class="form-group mt-3">
+                  <label>Select Metric Focus Areas</label>
+                  <div class="checkbox-group-grid">
+                    <label class="checkbox-container">
+                      <input type="checkbox" name="focus-area" value="carbon" checked>
+                      <span class="checkmark"></span>
+                      Carbon Emissions (tCO2e)
+                    </label>
+                    <label class="checkbox-container">
+                      <input type="checkbox" name="focus-area" value="energy" checked>
+                      <span class="checkmark"></span>
+                      Energy Consumption (kWh)
+                    </label>
+                    <label class="checkbox-container">
+                      <input type="checkbox" name="focus-area" value="water" checked>
+                      <span class="checkmark"></span>
+                      Water Usage (m3)
+                    </label>
+                    <label class="checkbox-container">
+                      <input type="checkbox" name="focus-area" value="social" checked>
+                      <span class="checkmark"></span>
+                      Social metrics (Employees, Training, Safety)
+                    </label>
+                    <label class="checkbox-container">
+                      <input type="checkbox" name="focus-area" value="governance" checked>
+                      <span class="checkmark"></span>
+                      Governance policies (Board diversity, Audits)
+                    </label>
+                  </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary mt-4"><i data-lucide="printer"></i> Compile and Generate Report</button>
+              </form>
+            </div>
+          </div>
+          
+          <div class="card mt-4">
+            <div class="card-header">
+              <h3 class="card-title">Generated Report Archives</h3>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Report Name</th>
+                      <th>Date Generated</th>
+                      <th>Type</th>
+                      <th>Format</th>
+                      <th>Size</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="report-archives-body">
+                    <tr>
+                      <td>ESG_Summary_Q4_2025</td>
+                      <td>2026-01-15</td>
+                      <td>Standard Comprehensive</td>
+                      <td><span class="badge badge-pdf">PDF</span></td>
+                      <td>2.4 MB</td>
+                      <td><button class="btn btn-outline btn-sm" onclick="alert('Downloading report archive...')"><i data-lucide="download"></i> Download</button></td>
+                    </tr>
+                    <tr>
+                      <td>Carbon_Risk_Disclosures_2025</td>
+                      <td>2025-12-10</td>
+                      <td>TCFD Carbon</td>
+                      <td><span class="badge badge-pdf">PDF</span></td>
+                      <td>1.8 MB</td>
+                      <td><button class="btn btn-outline btn-sm" onclick="alert('Downloading report archive...')"><i data-lucide="download"></i> Download</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ================= VIEW: SETTINGS ================= -->
+        <section id="settings-view" class="view-panel">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Platform settings</h3>
+            </div>
+            <div class="card-body">
+              <div class="settings-grid">
+                <div class="settings-group">
+                  <h4>Profile settings</h4>
+                  <div class="form-group mt-3">
+                    <label for="set-fullname">Full Name</label>
+                    <input type="text" id="set-fullname" value="Tara Alston" class="input-full-width">
+                  </div>
+                  <div class="form-group mt-3">
+                    <label for="set-email">Email Address</label>
+                    <input type="email" id="set-email" value="tara.alston@esgplatform.com" class="input-full-width">
+                  </div>
+                </div>
+                
+                <hr class="mt-4 mb-4">
+                
+                <div class="settings-group">
+                  <h4>Notification Preferences</h4>
+                  <div class="checkbox-group-grid mt-3">
+                    <label class="checkbox-container">
+                      <input type="checkbox" checked>
+                      <span class="checkmark"></span>
+                      Email alerts on data anomalies
+                    </label>
+                    <label class="checkbox-container">
+                      <input type="checkbox" checked>
+                      <span class="checkmark"></span>
+                      Weekly compliance summary digests
+                    </label>
+                    <label class="checkbox-container">
+                      <input type="checkbox">
+                      <span class="checkmark"></span>
+                      Slack integration updates
+                    </label>
+                  </div>
+                </div>
+                
+                <hr class="mt-4 mb-4">
+                
+                <div class="settings-group">
+                  <h4>System Configurations</h4>
+                  <div class="form-group mt-3">
+                    <label class="checkbox-container">
+                      <input type="checkbox" id="set-dark-mode" onchange="toggleDarkMode(this.checked)">
+                      <span class="checkmark"></span>
+                      Enable Platform Dark Mode
+                    </label>
+                  </div>
+                </div>
+                
+                <button class="btn btn-primary mt-4" onclick="saveSettings()"><i data-lucide="check"></i> Save Settings</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ================= VIEW: HELP & SUPPORT ================= -->
+        <section id="help-view" class="view-panel">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Help Center</h3>
+            </div>
+            <div class="card-body">
+              <div class="faq-container">
+                <div class="faq-item">
+                  <h4>How does the AI Smart Import work?</h4>
+                  <p>When you check the "AI Smart Import" option and upload a spreadsheet, our parser analyzes the headers to match your column labels (e.g. "CO2", "Carbon Emissions (tons)", "Carbon") with our standard "Carbon Emissions (tCO2e)" attribute. Any columns it cannot map with 90%+ confidence are presented in a Mapping Panel for confirmation.</p>
+                </div>
+                
+                <div class="faq-item mt-4">
+                  <h4>What validation rules are applied?</h4>
+                  <p>Data validation scans submissions for numerical limits, bounds, and empty states. For instance, carbon metrics must not be negative, percentage ratios must be between 0 and 100, and reporting periods must fall in standard ranges. Entries with warnings or omissions can be manually inspected and fixed via the Data Validation interface.</p>
+                </div>
+                
+                <div class="faq-item mt-4">
+                  <h4>Who do I contact for database discrepancies?</h4>
+                  <p>For credentials, user role updates, or server connection logs, submit an IT help desk request or email <code>support@esgplatform.com</code>.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+
+  <!-- ================= MODAL: RECORD DETAILS INSPECTION ================= -->
+  <div id="record-details-modal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-record-title">Record REC-001 Details</h3>
+        <button class="close-btn" onclick="closeRecordModal()" aria-label="Close modal"><i data-lucide="x"></i></button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="modal-details-grid">
+          <div class="detail-group">
+            <span class="detail-label">Record ID</span>
+            <span id="md-record-id" class="detail-value font-mono">REC-001</span>
+          </div>
+          <div class="detail-group">
+            <span class="detail-label">Department</span>
+            <span id="md-department" class="detail-value">Operations</span>
+          </div>
+          <div class="detail-group">
+            <span class="detail-label">Reporting Period</span>
+            <span id="md-period" class="detail-value">Q1 2026</span>
+          </div>
+          <div class="detail-group">
+            <span class="detail-label">Submitted On</span>
+            <span id="md-submitted-on" class="detail-value">2026-06-01</span>
+          </div>
+          <div class="detail-group">
+            <span class="detail-label">Status</span>
+            <span id="md-status" class="badge">Pending</span>
+          </div>
+        </div>
+        
+        <hr class="modal-divider">
+        
+        <!-- Environmental Details -->
+        <div class="modal-section-info">
+          <h4>Environmental Parameters</h4>
+          <div class="modal-values-grid">
+            <div class="value-item">
+              <span class="val-lbl">Carbon Emissions:</span>
+              <strong id="md-env-carbon">120 tCO<sub>2</sub>e</strong>
+            </div>
+            <div class="value-item">
+              <span class="val-lbl">Energy Consumption:</span>
+              <strong id="md-env-energy">14,250 kWh</strong>
+            </div>
+            <div class="value-item">
+              <span class="val-lbl">Water Usage:</span>
+              <strong id="md-env-water">240 m<sup>3</sup></strong>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Social Details -->
+        <div class="modal-section-info mt-3">
+          <h4>Social Parameters</h4>
+          <div class="modal-values-grid">
+            <div class="value-item">
+              <span class="val-lbl">Total Employees:</span>
+              <strong id="md-soc-employees">125 Employees</strong>
+            </div>
+            <div class="value-item">
+              <span class="val-lbl">Training Hours:</span>
+              <strong id="md-soc-training">450 Hours</strong>
+            </div>
+            <div class="value-item">
+              <span class="val-lbl">Incidents Reported:</span>
+              <strong id="md-soc-incidents">0 Incidents</strong>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Governance Details -->
+        <div class="modal-section-info mt-3">
+          <h4>Governance Parameters</h4>
+          <div class="modal-values-grid">
+            <div class="value-item">
+              <span class="val-lbl">Board Meetings Held:</span>
+              <strong id="md-gov-meetings">4 Meetings</strong>
+            </div>
+            <div class="value-item">
+              <span class="val-lbl">Compliance Rate:</span>
+              <strong id="md-gov-compliance">99.5 %</strong>
+            </div>
+            <div class="value-item">
+              <span class="val-lbl">Audits Completed:</span>
+              <strong id="md-gov-audits">1 Audit</strong>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-comments-area mt-3">
+          <span class="val-lbl">Comments / Notes:</span>
+          <p id="md-comments" class="comments-text">No comments provided.</p>
+        </div>
+        
+        <!-- Modal Error Alerts -->
+        <div id="modal-alerts-container" class="modal-alerts-box mt-3 hidden">
+          <h5 class="text-danger"><i data-lucide="alert-triangle"></i> Data Issues Detected:</h5>
+          <ul id="modal-alerts-list" class="text-danger">
+            <!-- Filled dynamically -->
+          </ul>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeRecordModal()">Close</button>
+        <div class="action-buttons" id="modal-actions-wrapper">
+          <button class="btn btn-outline text-danger" onclick="rejectRecordFromModal()"><i data-lucide="x"></i> Reject</button>
+          <button class="btn btn-primary" onclick="approveRecordFromModal()"><i data-lucide="check"></i> Approve Record</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ================= LIBRARIES & APP LOGIC ================= -->
+  <!-- ChartJS (Secure CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Lucide Icons (Secure CDN) -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Main Logic -->
+  <script src="app.js"></script>
+</body>
+</html>

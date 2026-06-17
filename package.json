@@ -1,0 +1,23 @@
+{
+  "name": "esg-platform",
+  "version": "1.0.0",
+  "description": "ESG Platform Client-Side Client Application Dashboard",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "esg",
+    "dashboard",
+    "environmental",
+    "social",
+    "governance"
+  ],
+  "author": "Internship Team",
+  "license": "ISC",
+  "devDependencies": {
+    "vite": "^6.0.0"
+  }
+}
