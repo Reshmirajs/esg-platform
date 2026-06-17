@@ -118,12 +118,7 @@
               <span>Dashboard</span>
             </a>
           </li>
-          <li>
-            <a href="#" id="nav-data-collection" class="nav-item" onclick="switchTab('data-collection')">
-              <i data-lucide="database"></i>
-              <span>ESG Data Collection</span>
-            </a>
-          </li>
+
           <li>
             <a href="#" id="nav-my-esg-data" class="nav-item" onclick="switchTab('my-esg-data')">
               <i data-lucide="bar-chart-3"></i>
@@ -173,6 +168,11 @@
         </div>
         
         <div class="header-right">
+          <!-- Accessibility Mode Toggle -->
+          <button class="accessibility-btn" onclick="toggleColorblindModeBtn()" aria-label="Toggle Colorblind Mode" title="Toggle Colorblind Mode" style="margin-right: 0.75rem;">
+            <i data-lucide="eye"></i>
+          </button>
+          
           <!-- Notification Bell -->
           <div class="notification-wrapper">
             <button class="icon-btn" onclick="toggleNotifications()" aria-label="Notifications">
@@ -559,328 +559,21 @@
             </div>
           </div>
         </section>
-
-
-        <!-- ================= VIEW: ESG DATA COLLECTION ================= -->
-        <section id="data-collection-view" class="view-panel">
-          <div class="collection-toggle-header">
-            <div class="toggle-tabs">
-              <button id="btn-toggle-import" class="tab-btn active" onclick="switchCollectionTab('import')">Import Excel</button>
-              <button id="btn-toggle-manual" class="tab-btn" onclick="switchCollectionTab('manual')">Manual Entry</button>
-            </div>
-          </div>
-          
-          <!-- PANEL A: IMPORT EXCEL (AI IMPORT) -->
-          <div id="import-excel-panel" class="collection-panel-tab active">
-            <div class="collection-intro">
-              <h3>ESG Data Collection</h3>
-              <p>Import ESG data using Excel / CSV</p>
-            </div>
-            
-            <!-- Import Flow Stepper -->
-            <div class="stepper">
-              <div class="step active" id="import-step-1">
-                <div class="step-num">1</div>
-                <span class="step-name">Upload File</span>
-              </div>
-              <div class="step-line" id="import-step-line-1"></div>
-              <div class="step" id="import-step-2">
-                <div class="step-num">2</div>
-                <span class="step-name">Map & Validate</span>
-              </div>
-              <div class="step-line" id="import-step-line-2"></div>
-              <div class="step" id="import-step-3">
-                <div class="step-num">3</div>
-                <span class="step-name">Review & Confirm</span>
-              </div>
-            </div>
-            
-            <div id="import-upload-container">
-              <div class="import-layout">
-                <!-- Drag and drop zone -->
-                <div class="drag-drop-container" id="drop-zone" onclick="triggerFileSelect()">
-                  <div class="drag-drop-inner">
-                    <i data-lucide="upload-cloud" class="upload-icon"></i>
-                    <h3>Drag & drop your file here</h3>
-                    <span class="divider-text">or</span>
-                    <button type="button" class="btn btn-outline">Browse Files</button>
-                    <p class="file-formats">Supported formats: .xlsx, .xls, .csv</p>
-                    <input type="file" id="file-input" class="hidden" accept=".xlsx,.xls,.csv" onchange="handleFileSelected(event)">
-                  </div>
-                  
-                  <!-- Upload status preview -->
-                  <div id="upload-progress-container" class="hidden" onclick="event.stopPropagation();">
-                    <div class="file-details-box">
-                      <i data-lucide="file-spreadsheet" class="file-icon text-success"></i>
-                      <div class="file-name-size">
-                        <span id="selected-file-name">esg_data_2026_q1.csv</span>
-                        <span id="selected-file-size">45 KB</span>
-                      </div>
-                      <button class="icon-btn text-danger" onclick="cancelUploadedFile()" aria-label="Remove File">
-                        <i data-lucide="trash-2"></i>
-                      </button>
-                    </div>
-                    <div class="progress-bar-container mt-2">
-                      <div class="progress-bar bg-success" id="file-upload-progress" style="width: 100%;"></div>
-                    </div>
-                    <span class="upload-status-text">Upload completed successfully!</span>
-                  </div>
-                </div>
-                
-                <!-- Side Options -->
-                <div class="card import-options-card">
-                  <div class="card-header">
-                    <h3 class="card-title">Import Method</h3>
-                  </div>
-                  <div class="card-body">
-                    <div class="import-option-item">
-                      <strong>Standard ESG Template</strong>
-                      <p class="option-description mt-2">Imports data conforming to the standard ESG platform structures. Ensure column mappings match your database requirements.</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="collection-footer">
-                <a href="#" class="btn-template-download" onclick="downloadESGTemplate()"><i data-lucide="help-circle"></i> Need a template? <span class="underline">Download ESG Template</span> <i data-lucide="download"></i></a>
-                
-                <div class="action-buttons">
-                  <button class="btn btn-outline" onclick="resetImportFlow()">Cancel</button>
-                  <button class="btn btn-primary" id="btn-next-step" onclick="proceedToMappingStep()" disabled>Next: Map Columns <i data-lucide="arrow-right"></i></button>
-                </div>
-              </div>
-            </div>
-
-            <!-- Column Mapping & Validation Preview Panel (hidden by default) -->
-            <div id="import-mapping-preview-container" class="mapping-preview-container hidden">
-              <div class="collection-intro">
-                <h3>Step 2: Map Columns & Run Validation Checks</h3>
-                <p>Review how spreadsheet columns correspond to platform ESG attributes. Click Validate to review parsed data for rule conformity before importing.</p>
-              </div>
-              
-              <table class="mapping-table">
-                <thead>
-                  <tr>
-                    <th>Spreadsheet Header</th>
-                    <th>Data Type</th>
-                    <th>Target ESG Attribute</th>
-                  </tr>
-                </thead>
-                <tbody id="mapping-table-tbody">
-                  <!-- Populated dynamically based on uploaded CSV headers -->
-                </tbody>
-              </table>
-              
-              <div class="mt-4">
-                <button type="button" class="btn btn-primary" id="btn-import-validate" onclick="runImportDataValidation()">
-                  <i data-lucide="shield-alert"></i> Validate Imported Data
-                </button>
-              </div>
-              
-              <!-- Preview Table Wrapper (appears after clicking Validate) -->
-              <div id="import-preview-wrapper" class="import-preview-wrapper hidden">
-                <h4 class="preview-grid-title">Parsed Data Preview & Validation Status</h4>
-                <div class="import-preview-table-container">
-                  <table class="import-preview-table">
-                    <thead>
-                      <tr>
-                        <th>Row ID</th>
-                        <th>Department</th>
-                        <th>Reporting Period</th>
-                        <th>Carbon (tCO2e)</th>
-                        <th>Energy (kWh)</th>
-                        <th>Water (m3)</th>
-                        <th>Validation Status</th>
-                      </tr>
-                    </thead>
-                    <tbody id="import-preview-tbody">
-                      <!-- Filled by JS -->
-                    </tbody>
-                  </table>
-                </div>
-                
-                <!-- Validation Status Summary Card -->
-                <div id="import-validation-summary" class="validation-feedback-card">
-                  <!-- Populated by JS -->
-                </div>
-              </div>
-
-              <!-- Actions inside mapping view -->
-              <div class="form-actions-bar mt-4" style="display:flex; justify-content: flex-end; gap:0.75rem; border-top: 1px solid var(--border-color); padding-top: 1.25rem;">
-                <button type="button" class="btn btn-outline" onclick="goBackToUpload()">Back to Upload</button>
-                <button type="button" class="btn btn-primary" id="btn-import-confirm" onclick="proceedToReviewConfirmStep()" disabled>
-                  Import & Proceed <i data-lucide="check"></i>
-                </button>
-              </div>
-            </div>
-          </div>
-          
-          <!-- PANEL B: MANUAL ENTRY FORM -->
-          <div id="manual-entry-panel" class="collection-panel-tab">
-            <div class="collection-intro">
-              <h3>ESG Data Collection &ndash; Manual Entry</h3>
-              <p>Enter ESG data manually through the form below.</p>
-              <span class="required-indicator-text">* Indicates required field</span>
-            </div>
-            
-            <form id="manual-entry-form" onsubmit="event.preventDefault(); submitManualData();">
-              <div class="form-row">
-                <div class="form-group half-width">
-                  <label for="form-department">Department <span class="text-danger">*</span></label>
-                  <select id="form-department" required>
-                    <option value="" disabled selected>Select Department</option>
-                    <option value="Operations">Operations</option>
-                    <option value="HR">HR</option>
-                    <option value="Finance">Finance</option>
-                    <option value="IT">IT</option>
-                    <option value="Procurement">Procurement</option>
-                    <option value="Facilities">Facilities</option>
-                  </select>
-                </div>
-                
-                <div class="form-group half-width">
-                  <label for="form-period">Reporting Period <span class="text-danger">*</span></label>
-                  <div class="input-icon-wrapper">
-                    <select id="form-period" required>
-                      <option value="" disabled selected>Select Reporting Period</option>
-                      <option value="Q1 2026">Q1 2026</option>
-                      <option value="Q2 2026">Q2 2026</option>
-                      <option value="Q3 2026">Q3 2026</option>
-                      <option value="Q4 2026">Q4 2026</option>
-                      <option value="Full Year 2025">Full Year 2025</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- Environmental Data -->
-              <div class="form-section-card">
-                <div class="section-title-bar">
-                  <div class="icon-circle bg-environmental"><i data-lucide="leaf"></i></div>
-                  <h3>Environmental Data</h3>
-                </div>
-                <div class="section-form-grid">
-                  <div class="form-group">
-                    <label for="env-carbon">Carbon Emissions (tCO<sub>2</sub>e) <span class="text-danger">*</span></label>
-                    <div class="input-suffix-wrapper">
-                      <input type="number" step="0.01" min="0" id="env-carbon" placeholder="Enter value" required>
-                      <span class="suffix-label">tCO<sub>2</sub>e</span>
-                    </div>
-                  </div>
-                  
-                  <div class="form-group">
-                    <label for="env-energy">Energy Consumption (kWh) <span class="text-danger">*</span></label>
-                    <div class="input-suffix-wrapper">
-                      <input type="number" step="1" min="0" id="env-energy" placeholder="Enter value" required>
-                      <span class="suffix-label">kWh</span>
-                    </div>
-                  </div>
-                  
-                  <div class="form-group">
-                    <label for="env-water">Water Usage (m<sup>3</sup>) <span class="text-danger">*</span></label>
-                    <div class="input-suffix-wrapper">
-                      <input type="number" step="0.1" min="0" id="env-water" placeholder="Enter value" required>
-                      <span class="suffix-label">m<sup>3</sup></span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- Social Data -->
-              <div class="form-section-card">
-                <div class="section-title-bar">
-                  <div class="icon-circle bg-social"><i data-lucide="users"></i></div>
-                  <h3>Social Data</h3>
-                </div>
-                <div class="section-form-grid">
-                  <div class="form-group">
-                    <label for="soc-employees">Total Employees <span class="text-danger">*</span></label>
-                    <div class="input-suffix-wrapper">
-                      <input type="number" step="1" min="1" id="soc-employees" placeholder="Enter value" required>
-                      <span class="suffix-label">Number</span>
-                    </div>
-                  </div>
-                  
-                  <div class="form-group">
-                    <label for="soc-training">Training Hours <span class="text-danger">*</span></label>
-                    <div class="input-suffix-wrapper">
-                      <input type="number" step="0.5" min="0" id="soc-training" placeholder="Enter value" required>
-                      <span class="suffix-label">Hours</span>
-                    </div>
-                  </div>
-                  
-                  <div class="form-group">
-                    <label for="soc-incidents">Incidents Reported <span class="text-danger">*</span></label>
-                    <div class="input-suffix-wrapper">
-                      <input type="number" step="1" min="0" id="soc-incidents" placeholder="Enter value" required>
-                      <span class="suffix-label">Number</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- Governance Data -->
-              <div class="form-section-card">
-                <div class="section-title-bar">
-                  <div class="icon-circle bg-governance"><i data-lucide="landmark"></i></div>
-                  <h3>Governance Data</h3>
-                </div>
-                <div class="section-form-grid">
-                  <div class="form-group">
-                    <label for="gov-meetings">Board Meetings Held <span class="text-danger">*</span></label>
-                    <div class="input-suffix-wrapper">
-                      <input type="number" step="1" min="0" id="gov-meetings" placeholder="Enter value" required>
-                      <span class="suffix-label">Number</span>
-                    </div>
-                  </div>
-                  
-                  <div class="form-group">
-                    <label for="gov-compliance">Compliance Rate (%) <span class="text-danger">*</span></label>
-                    <div class="input-suffix-wrapper">
-                      <input type="number" step="0.01" min="0" max="100" id="gov-compliance" placeholder="Enter value" required>
-                      <span class="suffix-label">%</span>
-                    </div>
-                  </div>
-                  
-                  <div class="form-group">
-                    <label for="gov-audits">Audits Completed <span class="text-danger">*</span></label>
-                    <div class="input-suffix-wrapper">
-                      <input type="number" step="1" min="0" id="gov-audits" placeholder="Enter value" required>
-                      <span class="suffix-label">Number</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- Comments Textarea -->
-              <div class="form-group mt-4">
-                <label for="form-comments">Comments / Notes (Optional)</label>
-                <textarea id="form-comments" placeholder="Enter any additional comments..."></textarea>
-              </div>
-              
-              <!-- Validation Feedback Card -->
-              <div id="manual-validation-feedback" class="validation-feedback-card hidden">
-                <!-- Filled dynamically by JavaScript -->
-              </div>
-              
-              <!-- Form Actions -->
-              <div class="form-actions-bar">
-                <button type="button" class="btn btn-outline" onclick="saveFormDraft()"><i data-lucide="save"></i> Save Draft</button>
-                <button type="button" class="btn btn-outline text-danger" onclick="clearManualForm()"><i data-lucide="rotate-ccw"></i> Clear</button>
-                <button type="button" class="btn btn-outline" id="btn-manual-validate" onclick="validateManualFormInputs()"><i data-lucide="shield-check"></i> Validate Data</button>
-                <button type="submit" class="btn btn-primary"><i data-lucide="send"></i> Submit Data</button>
-              </div>
-            </form>
-          </div>
-        
-
-        </section>
         <!-- ================= VIEW: MY ESG DATA ================= -->
         <section id="my-esg-data-view" class="view-panel">
           <div class="card">
             <div class="card-header flex-column-mobile">
-              <h3 class="card-title">Approved Corporate ESG Records</h3>
+              <div>
+                <h3 class="card-title">My ESG Records</h3>
+                <p style="font-size:0.82rem;color:var(--neutral-500);margin-top:0.2rem;">All ESG data submitted by your organization</p>
+              </div>
               <div class="card-actions flex-wrap-gap">
+                <select id="esg-filter-status" class="select-sm" onchange="filterApprovedTable()">
+                  <option value="all">All Statuses</option>
+                  <option value="Approved">Approved</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Rejected">Rejected</option>
+                </select>
                 <select id="esg-filter-dept" class="select-sm" onchange="filterApprovedTable()">
                   <option value="all">All Departments</option>
                   <option value="Operations">Operations</option>
@@ -891,6 +584,7 @@
                   <option value="Facilities">Facilities</option>
                 </select>
                 <button class="btn btn-outline btn-sm" onclick="exportApprovedCSV()"><i data-lucide="download"></i> Export CSV</button>
+                <button class="btn btn-primary btn-sm" onclick="openEsgDataCollectionModal()"><i data-lucide="plus"></i> Collect ESG Data</button>
               </div>
             </div>
             <div class="card-body">
@@ -905,7 +599,9 @@
                       <th>Energy (kWh)</th>
                       <th>Water (m3)</th>
                       <th>Employees</th>
-                      <th>Approved Date</th>
+                      <th>Date</th>
+                      <th>Status</th>
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody id="approved-table-body">
@@ -915,7 +611,27 @@
               </div>
               <div id="approved-empty-state" class="empty-state hidden">
                 <i data-lucide="alert-circle" class="empty-icon"></i>
-                <p>No approved records found matching filters.</p>
+                <p>No ESG records found matching selected filters.</p>
+              </div>
+              <!-- Pagination Bar -->
+              <div id="approved-pagination" class="pagination-bar hidden">
+                <span id="approved-page-info" class="pagination-info"></span>
+                <div class="pagination-controls">
+                  <button class="pag-btn" id="approved-first-btn" onclick="goToApprovedPage(1)" title="First Page"><i data-lucide="chevrons-left"></i></button>
+                  <button class="pag-btn" id="approved-prev-btn" onclick="goToApprovedPage(window._approvedCurrentPage - 1)" title="Previous"><i data-lucide="chevron-left"></i></button>
+                  <span id="approved-page-pills" class="page-pills"></span>
+                  <button class="pag-btn" id="approved-next-btn" onclick="goToApprovedPage(window._approvedCurrentPage + 1)" title="Next"><i data-lucide="chevron-right"></i></button>
+                  <button class="pag-btn" id="approved-last-btn" onclick="goToApprovedPage(window._approvedTotalPages)" title="Last Page"><i data-lucide="chevrons-right"></i></button>
+                </div>
+                <div class="pagination-size">
+                  <label>Rows:</label>
+                  <select id="approved-page-size" onchange="changeApprovedPageSize(this.value)">
+                    <option value="8" selected>8</option>
+                    <option value="12">12</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
@@ -1090,92 +806,16 @@
         </section>
 
 
-        <!-- ================= VIEW: REPORTS ================= -->
         <section id="reports-view" class="view-panel">
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">Generate ESG Compliance Report</h3>
-            </div>
-            <div class="card-body">
-              <p>Configure and generate ESG reports based on validated corporate data.</p>
-              <form id="report-generator-form" onsubmit="event.preventDefault(); triggerGenerateReport();" class="mt-4">
-
-                <div class="form-row mt-4">
-                  <div class="form-group half-width">
-                    <label for="rep-type">Report Type</label>
-                    <select id="rep-type" required>
-                      <option value="Standard">Standard ESG Comprehensive Report</option>
-                      <option value="GRI">GRI Standard Alignment</option>
-                      <option value="TCFD">TCFD Carbon Risk Disclosure</option>
-                      <option value="Environmental">Environmental Deep-Dive Report</option>
-                    </select>
-                  </div>
-                  <div class="form-group half-width">
-                    <label for="rep-format">Output Format</label>
-                    <select id="rep-format" required>
-                      <option value="PDF">PDF Document (.pdf)</option>
-                      <option value="Excel">Excel Spreadsheet (.xlsx)</option>
-                      <option value="CSV">Comma Separated Values (.csv)</option>
-                    </select>
-                  </div>
-                </div>
-                
-                <div class="form-row mt-3">
-                  <div class="form-group half-width">
-                    <label for="rep-time-scope">Period Scope</label>
-                    <select id="rep-time-scope" required onchange="handleReportScopeChange()">
-                      <option value="Quarterly" selected>Quarterly</option>
-                      <option value="Annual">Annual (Financial Year)</option>
-                    </select>
-                  </div>
-                  <div class="form-group half-width">
-                    <label for="rep-time-period">Reporting Period</label>
-                    <select id="rep-time-period" required>
-                      <!-- Populated dynamically via JS -->
-                    </select>
-                  </div>
-                </div>
-                
-                <div class="form-group mt-3">
-                  <label>Select Metric Focus Areas</label>
-                  <div class="checkbox-group-grid">
-                    <label class="checkbox-container">
-                      <input type="checkbox" name="focus-area" value="carbon" checked>
-                      <span class="checkmark"></span>
-                      Carbon Emissions (tCO2e)
-                    </label>
-                    <label class="checkbox-container">
-                      <input type="checkbox" name="focus-area" value="energy" checked>
-                      <span class="checkmark"></span>
-                      Energy Consumption (kWh)
-                    </label>
-                    <label class="checkbox-container">
-                      <input type="checkbox" name="focus-area" value="water" checked>
-                      <span class="checkmark"></span>
-                      Water Usage (m3)
-                    </label>
-                    <label class="checkbox-container">
-                      <input type="checkbox" name="focus-area" value="social" checked>
-                      <span class="checkmark"></span>
-                      Social metrics (Employees, Training, Safety)
-                    </label>
-                    <label class="checkbox-container">
-                      <input type="checkbox" name="focus-area" value="governance" checked>
-                      <span class="checkmark"></span>
-                      Governance policies (Board diversity, Audits)
-                    </label>
-                  </div>
-                </div>
-                
-                <button type="submit" class="btn btn-primary mt-4"><i data-lucide="printer"></i> Compile and Generate Report</button>
-              </form>
-            </div>
-          </div>
-          
-          <div class="card mt-4">
-            <div class="card-header">
+          <div class="reports-header-bar">
+            <div>
               <h3 class="card-title">Generated Report Archives</h3>
+              <p class="reports-toolbar-subtitle">Previously generated reports are listed first.</p>
             </div>
+            <button id="toggle-report-generator-btn" class="btn btn-primary btn-sm" onclick="openReportGeneratorModal()"><i data-lucide="plus"></i> Generate New Report</button>
+          </div>
+
+          <div class="card mt-4">
             <div class="card-body">
               <div class="table-responsive">
                 <table class="table">
@@ -1268,6 +908,13 @@
                       Enable Platform Dark Mode
                     </label>
                   </div>
+                  <div class="form-group mt-3">
+                    <label class="checkbox-container">
+                      <input type="checkbox" id="set-colorblind-mode" onchange="toggleColorblindMode(this.checked)">
+                      <span class="checkmark"></span>
+                      Enable Colorblind-Friendly Mode
+                    </label>
+                  </div>
                 </div>
                 
                 <button class="btn btn-primary mt-4" onclick="saveSettings()"><i data-lucide="check"></i> Save Settings</button>
@@ -1338,6 +985,10 @@
           <div class="detail-group">
             <span class="detail-label">Status</span>
             <span id="md-status" class="badge">Pending</span>
+          </div>
+          <div class="detail-group">
+            <span class="detail-label">Approval Date</span>
+            <span id="md-approved-on" class="detail-value">Pending approval</span>
           </div>
         </div>
         
@@ -1424,6 +1075,647 @@
     </div>
   </div>
 
+  <!-- ================= MODAL: APPROVE CONFIRMATION ================= -->
+  <div id="validation-confirm-modal" class="modal-backdrop hidden">
+    <div class="modal-card modal-card-sm">
+      <div class="modal-header">
+        <div style="display:flex;align-items:center;gap:0.6rem;">
+          <span id="validation-confirm-icon-wrap" class="confirm-icon-wrap confirm-icon-approve"></span>
+          <h3 id="validation-confirm-title">Confirm Action</h3>
+        </div>
+        <button class="close-btn" onclick="closeValidationConfirmModal()" aria-label="Close confirmation modal"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <p id="validation-confirm-message" class="confirm-message">Are you sure you want to apply this action?</p>
+        <p class="confirm-record-line">Record: <span id="validation-confirm-record-id" class="font-mono">REC-001</span></p>
+        <div id="validation-confirm-reason-wrap" class="form-group mt-3 hidden">
+          <label for="validation-reject-reason">Rejection Reason (Optional)</label>
+          <textarea id="validation-reject-reason" placeholder="Provide a reason for rejecting this record (optional)..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeValidationConfirmModal()">Cancel</button>
+        <button id="validation-confirm-button" class="btn btn-primary" onclick="confirmValidationDecision()">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: MY ESG DATA – VIEW DETAILS ONLY ================= -->
+  <div id="esg-view-modal" class="modal-backdrop hidden" onclick="closeEsgViewModal(event)">
+    <div class="modal-card modal-card-wide" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div style="display:flex;flex-direction:column;gap:0.2rem;">
+          <h3 id="esg-modal-title">ESG Record Details</h3>
+          <span id="esg-modal-subtitle" style="font-size:0.8rem;color:var(--neutral-500);">Viewing full ESG record information</span>
+        </div>
+        <button class="close-btn" onclick="closeEsgViewModal()" aria-label="Close"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <!-- Top meta row -->
+        <div class="modal-details-grid">
+          <div class="detail-group">
+            <span class="detail-label">Record ID</span>
+            <span id="evm-record-id" class="detail-value font-mono">—</span>
+          </div>
+          <div class="detail-group">
+            <span class="detail-label">Department</span>
+            <span id="evm-department" class="detail-value">—</span>
+          </div>
+          <div class="detail-group">
+            <span class="detail-label">Reporting Period</span>
+            <span id="evm-period" class="detail-value">—</span>
+          </div>
+          <div class="detail-group">
+            <span class="detail-label">Submitted On</span>
+            <span id="evm-submitted" class="detail-value">—</span>
+          </div>
+          <div class="detail-group">
+            <span class="detail-label">Status</span>
+            <span id="evm-status" class="badge">—</span>
+          </div>
+          <div class="detail-group">
+            <span class="detail-label">Approval Date</span>
+            <span id="evm-approved-on" class="detail-value">—</span>
+          </div>
+        </div>
+
+        <hr class="modal-divider">
+
+        <!-- Environmental -->
+        <div class="modal-section-info">
+          <h4 style="display:flex;align-items:center;gap:0.5rem;">
+            <span style="width:10px;height:10px;border-radius:50%;background:var(--color-env);display:inline-block;"></span>
+            Environmental Metrics
+          </h4>
+          <div class="modal-values-grid mt-2">
+            <div class="value-item">
+              <span class="val-lbl">Carbon Emissions:</span>
+              <strong id="evm-carbon">—</strong>
+            </div>
+            <div class="value-item">
+              <span class="val-lbl">Energy Consumption:</span>
+              <strong id="evm-energy">—</strong>
+            </div>
+            <div class="value-item">
+              <span class="val-lbl">Water Usage:</span>
+              <strong id="evm-water">—</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Social -->
+        <div class="modal-section-info mt-3">
+          <h4 style="display:flex;align-items:center;gap:0.5rem;">
+            <span style="width:10px;height:10px;border-radius:50%;background:var(--color-soc);display:inline-block;"></span>
+            Social Metrics
+          </h4>
+          <div class="modal-values-grid mt-2">
+            <div class="value-item">
+              <span class="val-lbl">Total Employees:</span>
+              <strong id="evm-employees">—</strong>
+            </div>
+            <div class="value-item">
+              <span class="val-lbl">Training Hours:</span>
+              <strong id="evm-training">—</strong>
+            </div>
+            <div class="value-item">
+              <span class="val-lbl">Incidents Reported:</span>
+              <strong id="evm-incidents">—</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Governance -->
+        <div class="modal-section-info mt-3">
+          <h4 style="display:flex;align-items:center;gap:0.5rem;">
+            <span style="width:10px;height:10px;border-radius:50%;background:var(--color-gov);display:inline-block;"></span>
+            Governance Metrics
+          </h4>
+          <div class="modal-values-grid mt-2">
+            <div class="value-item">
+              <span class="val-lbl">Board Meetings:</span>
+              <strong id="evm-meetings">—</strong>
+            </div>
+            <div class="value-item">
+              <span class="val-lbl">Compliance Rate:</span>
+              <strong id="evm-compliance">—</strong>
+            </div>
+            <div class="value-item">
+              <span class="val-lbl">Audits Completed:</span>
+              <strong id="evm-audits">—</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Comments -->
+        <div class="modal-comments-area mt-3">
+          <span class="val-lbl">Comments / Notes:</span>
+          <p id="evm-comments" class="comments-text">No comments provided.</p>
+        </div>
+
+        <!-- Issues alert -->
+        <div id="evm-issues-container" class="modal-alerts-box mt-3 hidden">
+          <h5 class="text-danger"><i data-lucide="alert-triangle"></i> Data Issues Detected:</h5>
+          <ul id="evm-issues-list" class="text-danger"></ul>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeEsgViewModal()"><i data-lucide="x"></i> Close</button>
+        <div id="evm-action-buttons" class="action-buttons"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: ESG DATA COLLECTION ================= -->
+  <div id="data-collection-modal" class="modal-backdrop hidden" onclick="closeEsgDataCollectionModal(event)">
+    <div class="modal-card modal-card-wide" style="max-width: 1000px; width: 95vw; max-height: 90vh; display: flex; flex-direction: column;" onclick="event.stopPropagation()">
+      <div class="modal-header" style="flex-shrink: 0;">
+        <div>
+          <h3 class="modal-title" style="display: flex; align-items: center; gap: 0.5rem; font-family: 'Outfit', sans-serif; font-weight: 600;">
+            <i data-lucide="database" style="color: var(--primary);"></i> ESG Data Collection
+          </h3>
+          <p style="font-size:0.8rem;color:var(--neutral-500);margin-top:0.25rem;">Submit or import environmental, social, and governance metrics</p>
+        </div>
+        <button class="close-btn" onclick="closeEsgDataCollectionModal()" aria-label="Close modal"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body" style="overflow-y: auto; flex: 1; padding: 1.5rem;">
+        <div class="collection-toggle-header" style="margin-bottom: 1.5rem;">
+          <div class="toggle-tabs">
+            <button id="btn-toggle-import" class="tab-btn active" onclick="switchCollectionTab('import')">Import Excel</button>
+            <button id="btn-toggle-manual" class="tab-btn" onclick="switchCollectionTab('manual')">Manual Entry</button>
+          </div>
+        </div>
+        
+        <!-- PANEL A: IMPORT EXCEL (AI IMPORT) -->
+        <div id="import-excel-panel" class="collection-panel-tab active">
+          <div class="collection-intro">
+            <h3>ESG Data Collection</h3>
+            <p>Import ESG data using Excel / CSV</p>
+          </div>
+          
+          <!-- Import Flow Stepper -->
+          <div class="stepper">
+            <div class="step active" id="import-step-1">
+              <div class="step-num">1</div>
+              <span class="step-name">Upload File</span>
+            </div>
+            <div class="step-line" id="import-step-line-1"></div>
+            <div class="step" id="import-step-2">
+              <div class="step-num">2</div>
+              <span class="step-name">Map & Validate</span>
+            </div>
+            <div class="step-line" id="import-step-line-2"></div>
+            <div class="step" id="import-step-3">
+              <div class="step-num">3</div>
+              <span class="step-name">Review & Confirm</span>
+            </div>
+          </div>
+          
+          <div id="import-upload-container">
+            <div class="import-layout">
+              <!-- Drag and drop zone -->
+              <div class="drag-drop-container" id="drop-zone" onclick="triggerFileSelect()">
+                <div class="drag-drop-inner">
+                  <i data-lucide="upload-cloud" class="upload-icon"></i>
+                  <h3>Drag & drop your file here</h3>
+                  <span class="divider-text">or</span>
+                  <button type="button" class="btn btn-outline">Browse Files</button>
+                  <p class="file-formats">Supported formats: .xlsx, .xls, .csv</p>
+                  <input type="file" id="file-input" class="hidden" accept=".xlsx,.xls,.csv" onchange="handleFileSelected(event)">
+                </div>
+                
+                <!-- Upload status preview -->
+                <div id="upload-progress-container" class="hidden" onclick="event.stopPropagation();">
+                  <div class="file-details-box">
+                    <i data-lucide="file-spreadsheet" class="file-icon text-success"></i>
+                    <div class="file-name-size">
+                      <span id="selected-file-name">esg_data_2026_q1.csv</span>
+                      <span id="selected-file-size">45 KB</span>
+                    </div>
+                    <button class="icon-btn text-danger" onclick="cancelUploadedFile()" aria-label="Remove File">
+                      <i data-lucide="trash-2"></i>
+                    </button>
+                  </div>
+                  <div class="progress-bar-container mt-2">
+                    <div class="progress-bar bg-success" id="file-upload-progress" style="width: 100%;"></div>
+                  </div>
+                  <span class="upload-status-text">Upload completed successfully!</span>
+                </div>
+              </div>
+              
+              <!-- Side Options -->
+              <div class="card import-options-card">
+                <div class="card-header">
+                  <h3 class="card-title">Import Method</h3>
+                </div>
+                <div class="card-body">
+                  <div class="import-option-item">
+                    <strong>Standard ESG Template</strong>
+                    <p class="option-description mt-2">Imports data conforming to the standard ESG platform structures. Ensure column mappings match your database requirements.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="collection-footer">
+              <a href="#" class="btn-template-download" onclick="downloadESGTemplate()"><i data-lucide="help-circle"></i> Need a template? <span class="underline">Download ESG Template</span> <i data-lucide="download"></i></a>
+              
+              <div class="action-buttons">
+                <button class="btn btn-outline" onclick="resetImportFlow()">Cancel</button>
+                <button class="btn btn-primary" id="btn-next-step" onclick="proceedToMappingStep()" disabled>Next: Map Columns <i data-lucide="arrow-right"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Column Mapping & Validation Preview Panel (hidden by default) -->
+          <div id="import-mapping-preview-container" class="mapping-preview-container hidden">
+            <div class="collection-intro">
+              <h3>Step 2: Map Columns & Run Validation Checks</h3>
+              <p>Review how spreadsheet columns correspond to platform ESG attributes. Click Validate to review parsed data for rule conformity before importing.</p>
+            </div>
+            
+            <table class="mapping-table">
+              <thead>
+                <tr>
+                  <th>Spreadsheet Header</th>
+                  <th>Data Type</th>
+                  <th>Target ESG Attribute</th>
+                </tr>
+              </thead>
+              <tbody id="mapping-table-tbody">
+                <!-- Populated dynamically based on uploaded CSV headers -->
+              </tbody>
+            </table>
+            
+            <div class="mt-4">
+              <button type="button" class="btn btn-primary" id="btn-import-validate" onclick="runImportDataValidation()">
+                <i data-lucide="shield-alert"></i> Validate Imported Data
+              </button>
+            </div>
+            
+            <!-- Preview Table Wrapper (appears after clicking Validate) -->
+            <div id="import-preview-wrapper" class="import-preview-wrapper hidden">
+              <h4 class="preview-grid-title">Parsed Data Preview & Validation Status</h4>
+              <div class="import-preview-table-container">
+                <table class="import-preview-table">
+                  <thead>
+                    <tr>
+                      <th>Row ID</th>
+                      <th>Department</th>
+                      <th>Reporting Period</th>
+                      <th>Carbon (tCO2e)</th>
+                      <th>Energy (kWh)</th>
+                      <th>Water (m3)</th>
+                      <th>Validation Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="import-preview-tbody">
+                    <!-- Filled by JS -->
+                  </tbody>
+                </table>
+              </div>
+              
+              <!-- Validation Status Summary Card -->
+              <div id="import-validation-summary" class="validation-feedback-card">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+
+            <!-- Actions inside mapping view -->
+            <div class="form-actions-bar mt-4" style="display:flex; justify-content: flex-end; gap:0.75rem; border-top: 1px solid var(--border-color); padding-top: 1.25rem;">
+              <button type="button" class="btn btn-outline" onclick="goBackToUpload()">Back to Upload</button>
+              <button type="button" class="btn btn-primary" id="btn-import-confirm" onclick="proceedToReviewConfirmStep()" disabled>
+                Import & Proceed <i data-lucide="check"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- PANEL B: MANUAL ENTRY FORM -->
+        <div id="manual-entry-panel" class="collection-panel-tab">
+          <div class="collection-intro">
+            <h3>ESG Data Collection &ndash; Manual Entry</h3>
+            <p>Enter ESG data manually through the form below.</p>
+            <span class="required-indicator-text">* Indicates required field</span>
+            <div id="manual-edit-banner" class="edit-banner hidden"></div>
+          </div>
+          
+          <form id="manual-entry-form" onsubmit="event.preventDefault(); submitManualData();">
+            <div class="form-row">
+              <div class="form-group half-width">
+                <label for="form-department">Department <span class="text-danger">*</span></label>
+                <select id="form-department" required>
+                  <option value="" disabled selected>Select Department</option>
+                  <option value="Operations">Operations</option>
+                  <option value="HR">HR</option>
+                  <option value="Finance">Finance</option>
+                  <option value="IT">IT</option>
+                  <option value="Procurement">Procurement</option>
+                  <option value="Facilities">Facilities</option>
+                </select>
+              </div>
+              
+              <div class="form-group half-width">
+                <label for="form-period">Reporting Period <span class="text-danger">*</span></label>
+                <div class="input-icon-wrapper">
+                  <select id="form-period" required>
+                    <option value="" disabled selected>Select Reporting Period</option>
+                    <option value="Q1 2026">Q1 2026</option>
+                    <option value="Q2 2026">Q2 2026</option>
+                    <option value="Q3 2026">Q3 2026</option>
+                    <option value="Q4 2026">Q4 2026</option>
+                    <option value="Full Year 2025">Full Year 2025</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Environmental Data -->
+            <div class="form-section-card" style="margin-top: 1rem;">
+              <div class="section-title-bar">
+                <div class="icon-circle bg-environmental"><i data-lucide="leaf"></i></div>
+                <h3>Environmental Data</h3>
+              </div>
+              <div class="section-form-grid">
+                <div class="form-group">
+                  <label for="env-carbon">Carbon Emissions (tCO<sub>2</sub>e) <span class="text-danger">*</span></label>
+                  <div class="input-suffix-wrapper">
+                    <input type="number" step="0.01" min="0" id="env-carbon" placeholder="Enter value" required>
+                    <span class="suffix-label">tCO<sub>2</sub>e</span>
+                  </div>
+                </div>
+                
+                <div class="form-group">
+                  <label for="env-energy">Energy Consumption (kWh) <span class="text-danger">*</span></label>
+                  <div class="input-suffix-wrapper">
+                    <input type="number" step="1" min="0" id="env-energy" placeholder="Enter value" required>
+                    <span class="suffix-label">kWh</span>
+                  </div>
+                </div>
+                
+                <div class="form-group">
+                  <label for="env-water">Water Usage (m<sup>3</sup>) <span class="text-danger">*</span></label>
+                  <div class="input-suffix-wrapper">
+                    <input type="number" step="0.1" min="0" id="env-water" placeholder="Enter value" required>
+                    <span class="suffix-label">m<sup>3</sup></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Social Data -->
+            <div class="form-section-card" style="margin-top: 1rem;">
+              <div class="section-title-bar">
+                <div class="icon-circle bg-social"><i data-lucide="users"></i></div>
+                <h3>Social Data</h3>
+              </div>
+              <div class="section-form-grid">
+                <div class="form-group">
+                  <label for="soc-employees">Total Employees <span class="text-danger">*</span></label>
+                  <div class="input-suffix-wrapper">
+                    <input type="number" step="1" min="1" id="soc-employees" placeholder="Enter value" required>
+                    <span class="suffix-label">Number</span>
+                  </div>
+                </div>
+                
+                <div class="form-group">
+                  <label for="soc-training">Training Hours <span class="text-danger">*</span></label>
+                  <div class="input-suffix-wrapper">
+                    <input type="number" step="0.5" min="0" id="soc-training" placeholder="Enter value" required>
+                    <span class="suffix-label">Hours</span>
+                  </div>
+                </div>
+                
+                <div class="form-group">
+                  <label for="soc-incidents">Incidents Reported <span class="text-danger">*</span></label>
+                  <div class="input-suffix-wrapper">
+                    <input type="number" step="1" min="0" id="soc-incidents" placeholder="Enter value" required>
+                    <span class="suffix-label">Number</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Governance Data -->
+            <div class="form-section-card" style="margin-top: 1rem;">
+              <div class="section-title-bar">
+                <div class="icon-circle bg-governance"><i data-lucide="landmark"></i></div>
+                <h3>Governance Data</h3>
+              </div>
+              <div class="section-form-grid">
+                <div class="form-group">
+                  <label for="gov-meetings">Board Meetings Held <span class="text-danger">*</span></label>
+                  <div class="input-suffix-wrapper">
+                    <input type="number" step="1" min="0" id="gov-meetings" placeholder="Enter value" required>
+                    <span class="suffix-label">Number</span>
+                  </div>
+                </div>
+                
+                <div class="form-group">
+                  <label for="gov-compliance">Compliance Rate (%) <span class="text-danger">*</span></label>
+                  <div class="input-suffix-wrapper">
+                    <input type="number" step="0.01" min="0" max="100" id="gov-compliance" placeholder="Enter value" required>
+                    <span class="suffix-label">%</span>
+                  </div>
+                </div>
+                
+                <div class="form-group">
+                  <label for="gov-audits">Audits Completed <span class="text-danger">*</span></label>
+                  <div class="input-suffix-wrapper">
+                    <input type="number" step="1" min="0" id="gov-audits" placeholder="Enter value" required>
+                    <span class="suffix-label">Number</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Comments Textarea -->
+            <div class="form-group mt-4">
+              <label for="form-comments">Comments / Notes (Optional)</label>
+              <textarea id="form-comments" placeholder="Enter any additional comments..."></textarea>
+            </div>
+            
+            <!-- Validation Feedback Card -->
+            <div id="manual-validation-feedback" class="validation-feedback-card hidden">
+              <!-- Filled dynamically by JavaScript -->
+            </div>
+            
+            <!-- Form Actions -->
+            <div class="form-actions-bar mt-4" style="display:flex; justify-content: flex-end; gap:0.75rem; border-top: 1px solid var(--border-color); padding-top: 1.25rem;">
+              <button type="button" class="btn btn-outline" onclick="saveFormDraft()"><i data-lucide="save"></i> Save Draft</button>
+              <button type="button" class="btn btn-outline text-danger" onclick="clearManualForm()"><i data-lucide="rotate-ccw"></i> Clear</button>
+              <button type="button" class="btn btn-outline" id="btn-manual-validate" onclick="validateManualFormInputs()"><i data-lucide="shield-check"></i> Validate Data</button>
+              <button type="submit" class="btn btn-primary"><i data-lucide="send"></i> Submit Data</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: REPORT GENERATOR ================= -->
+  <div id="report-generator-modal" class="modal-backdrop hidden" onclick="closeReportGeneratorModal(event)">
+    <div class="modal-card" style="max-width: 680px; max-height: 90vh; display: flex; flex-direction: column;" onclick="event.stopPropagation()">
+      <div class="modal-header" style="flex-shrink: 0;">
+        <div>
+          <h3 class="modal-title" style="display: flex; align-items: center; gap: 0.5rem; font-family: 'Outfit', sans-serif; font-weight: 600;">
+            <i data-lucide="file-plus" style="color: var(--primary);"></i> Generate ESG Compliance Report
+          </h3>
+          <p style="font-size:0.8rem;color:var(--neutral-500);margin-top:0.25rem;">Configure and generate ESG reports based on validated corporate data</p>
+        </div>
+        <button class="close-btn" onclick="closeReportGeneratorModal()" aria-label="Close modal"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body" style="overflow-y: auto; flex: 1; padding: 1.5rem;">
+        <p style="font-size: 0.9rem; color: var(--neutral-600); margin-bottom: 1rem;">Configure the parameters below to generate a formatted ESG compliance report.</p>
+        
+        <form id="report-generator-form" onsubmit="event.preventDefault(); triggerGenerateReport();">
+
+          <div class="form-row">
+            <div class="form-group half-width">
+              <label for="rep-type">Report Type</label>
+              <select id="rep-type" required>
+                <option value="Standard">Standard ESG Comprehensive Report</option>
+                <option value="GRI">GRI Standard Alignment</option>
+                <option value="TCFD">TCFD Carbon Risk Disclosure</option>
+                <option value="Environmental">Environmental Deep-Dive Report</option>
+              </select>
+            </div>
+            <div class="form-group half-width">
+              <label for="rep-format">Output Format</label>
+              <select id="rep-format" required>
+                <option value="PDF">PDF Document (.pdf)</option>
+                <option value="Excel">Excel Spreadsheet (.xlsx)</option>
+                <option value="CSV">Comma Separated Values (.csv)</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="form-row mt-3">
+            <div class="form-group half-width">
+              <label for="rep-time-scope">Period Scope</label>
+              <select id="rep-time-scope" required onchange="handleReportScopeChange()">
+                <option value="Monthly">Monthly</option>
+                <option value="Quarterly" selected>Quarterly</option>
+                <option value="Annual">Annual (Financial Year)</option>
+              </select>
+            </div>
+            <div class="form-group half-width">
+              <label for="rep-time-period">Reporting Period</label>
+              <select id="rep-time-period" required>
+                <!-- Populated dynamically via JS -->
+              </select>
+            </div>
+          </div>
+          
+          <div class="form-group mt-3">
+            <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Select Metric Focus Areas</label>
+            <div class="checkbox-group-grid" style="display: grid; grid-template-columns: 1fr; gap: 0.5rem;">
+              <label class="checkbox-container">
+                <input type="checkbox" name="focus-area" value="carbon" checked>
+                <span class="checkmark"></span>
+                Carbon Emissions (tCO2e)
+              </label>
+              <label class="checkbox-container">
+                <input type="checkbox" name="focus-area" value="energy" checked>
+                <span class="checkmark"></span>
+                Energy Consumption (kWh)
+              </label>
+              <label class="checkbox-container">
+                <input type="checkbox" name="focus-area" value="water" checked>
+                <span class="checkmark"></span>
+                Water Usage (m3)
+              </label>
+              <label class="checkbox-container">
+                <input type="checkbox" name="focus-area" value="social" checked>
+                <span class="checkmark"></span>
+                Social metrics (Employees, Training, Safety)
+              </label>
+              <label class="checkbox-container">
+                <input type="checkbox" name="focus-area" value="governance" checked>
+                <span class="checkmark"></span>
+                Governance policies (Board diversity, Audits)
+              </label>
+            </div>
+          </div>
+          
+          <div class="form-actions-bar mt-4" style="display:flex; justify-content: flex-end; gap:0.75rem; border-top: 1px solid var(--border-color); padding-top: 1.25rem;">
+            <button type="button" class="btn btn-outline" onclick="closeReportGeneratorModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary"><i data-lucide="printer"></i> Compile &amp; Generate Report</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ================= SHARE REPORT MODAL ================= -->
+  <div id="share-report-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="share-modal-title">
+    <div class="modal-container" style="max-width:540px;">
+      <div class="modal-header">
+        <div>
+          <h2 id="share-modal-title" class="modal-title">Share Report</h2>
+          <p id="share-modal-subtitle" class="modal-subtitle">Share or export this report via your preferred channel</p>
+        </div>
+        <button class="modal-close-btn" onclick="closeShareReportModal()" aria-label="Close">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="modal-body" style="padding:1.5rem;">
+        <!-- Report preview card -->
+        <div id="share-report-preview" class="share-report-preview-card">
+          <div class="share-preview-icon"><i data-lucide="file-text"></i></div>
+          <div class="share-preview-info">
+            <p id="share-preview-name" class="share-preview-name"></p>
+            <p id="share-preview-meta" class="share-preview-meta"></p>
+          </div>
+        </div>
+
+        <!-- Shareable Link -->
+        <div class="share-section">
+          <label class="share-section-label"><i data-lucide="link"></i> Shareable Link</label>
+          <div class="share-link-row">
+            <input type="text" id="share-link-input" class="share-link-input" readonly />
+            <button class="btn btn-primary btn-sm" onclick="copyShareLink()" id="copy-link-btn">
+              <i data-lucide="copy"></i> Copy
+            </button>
+          </div>
+        </div>
+
+        <!-- Email Share -->
+        <div class="share-section">
+          <label class="share-section-label"><i data-lucide="mail"></i> Share via Email</label>
+          <div class="share-email-row">
+            <input type="email" id="share-email-input" class="share-link-input" placeholder="colleague@company.com" />
+            <button class="btn btn-primary btn-sm" onclick="sendReportByEmail()">
+              <i data-lucide="send"></i> Send
+            </button>
+          </div>
+        </div>
+
+        <!-- Download buttons -->
+        <div class="share-section">
+          <label class="share-section-label"><i data-lucide="download"></i> Download</label>
+          <div class="share-download-grid">
+            <button class="share-download-btn" id="share-dl-pdf" onclick="downloadSharedReport('PDF')">
+              <i data-lucide="file-text"></i>
+              <span>PDF Report</span>
+              <small>Print-ready format</small>
+            </button>
+            <button class="share-download-btn" id="share-dl-csv" onclick="downloadSharedReport('CSV')">
+              <i data-lucide="table"></i>
+              <span>CSV Data</span>
+              <small>Spreadsheet ready</small>
+            </button>
+            <button class="share-download-btn" id="share-dl-excel" onclick="downloadSharedReport('Excel')">
+              <i data-lucide="file-spreadsheet"></i>
+              <span>Excel Report</span>
+              <small>Full workbook</small>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- ================= LIBRARIES & APP LOGIC ================= -->
   <!-- ChartJS (Secure CDN) -->

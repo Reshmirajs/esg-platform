@@ -29,6 +29,28 @@ const DEFAULT_STATE = {
     { id: "REC-004", action: "Data rejected", dept: "IT", time: "Yesterday", status: "Rejected" },
     { id: "REC-005", action: "Excel imported", dept: "Procurement", time: "2 days ago", status: "Pending" }
   ],
+  reportArchives: [
+    {
+      id: "REP-20260115-001",
+      name: "ESG_Summary_Q4_2025",
+      dateGenerated: "2026-01-15",
+      reportType: "Standard Comprehensive",
+      format: "PDF",
+      size: "2.4 MB",
+      approvedCount: 97,
+      downloadContent: "ESG Summary Q4 2025\nType: Standard Comprehensive\nFormat: PDF\nApproved ESG Records: 97\nGenerated: 2026-01-15"
+    },
+    {
+      id: "REP-20251210-001",
+      name: "Carbon_Risk_Disclosures_2025",
+      dateGenerated: "2025-12-10",
+      reportType: "TCFD Carbon",
+      format: "PDF",
+      size: "1.8 MB",
+      approvedCount: 97,
+      downloadContent: "Carbon Risk Disclosures 2025\nType: TCFD Carbon\nFormat: PDF\nApproved ESG Records: 97\nGenerated: 2025-12-10"
+    }
+  ],
   records: [] // Will be populated dynamically on first load
 };
 
@@ -230,6 +252,27 @@ function loadAppState() {
     saveAppState();
   }
   
+  let stateMutated = false;
+  if (!Array.isArray(appState.records) || appState.records.length === 0) {
+    appState.records = seedDatabase();
+    stateMutated = true;
+  }
+  if (!Array.isArray(appState.reportArchives) || appState.reportArchives.length === 0) {
+    appState.reportArchives = JSON.parse(JSON.stringify(DEFAULT_STATE.reportArchives));
+    stateMutated = true;
+  }
+  if (!Array.isArray(appState.notifications)) {
+    appState.notifications = JSON.parse(JSON.stringify(DEFAULT_STATE.notifications));
+    stateMutated = true;
+  }
+  if (!Array.isArray(appState.recentActivities)) {
+    appState.recentActivities = JSON.parse(JSON.stringify(DEFAULT_STATE.recentActivities));
+    stateMutated = true;
+  }
+  if (stateMutated) {
+    saveAppState();
+  }
+  
   // Theme check
   const darkMode = localStorage.getItem(CONFIG.DARK_MODE_KEY) === 'true';
   toggleDarkMode(darkMode);
@@ -255,6 +298,9 @@ let selectedFile = null;
 let selectedImportOption = 'standard';
 let tempFormDraft = null;
 let selectedRecordForModal = null;
+let selectedRecordForValidation = null;
+let editingRecordId = null;
+let pendingValidationDecision = null;
 
 document.addEventListener("DOMContentLoaded", () => {
   loadAppState();
@@ -265,6 +311,7 @@ document.addEventListener("DOMContentLoaded", () => {
   updateDashboardKPIs();
   initDashboardCharts();
   renderRecentActivities();
+  renderReportArchives();
   renderTasksList();
   
   // Set default form date/period to current option
@@ -313,6 +360,11 @@ function updateProfileDetailsUI() {
 
 /* ================= VIEW ROUTING SYSTEM ================= */
 function switchTab(tabId, subOption = null) {
+  if (tabId === 'data-collection') {
+    openEsgDataCollectionModal(subOption);
+    return;
+  }
+
   // Hide all screens
   const panels = document.querySelectorAll('.view-panel');
   panels.forEach(p => p.classList.remove('active'));
@@ -331,7 +383,6 @@ function switchTab(tabId, subOption = null) {
   // Update Title
   const titleMap = {
     'dashboard': 'Dashboard',
-    'data-collection': 'ESG Data Collection',
     'my-esg-data': 'My ESG Data',
     'data-validation': 'Data Validation',
     'reports': 'Reports',
@@ -345,12 +396,6 @@ function switchTab(tabId, subOption = null) {
     updateDashboardKPIs();
     updateDashboardCharts();
     renderRecentActivities();
-  } else if (tabId === 'data-collection') {
-    if (subOption === 'manual') {
-      switchCollectionTab('manual');
-    } else {
-      switchCollectionTab('import');
-    }
   } else if (tabId === 'data-validation') {
     if (subOption) {
       activeValidationTab = subOption;
@@ -364,6 +409,8 @@ function switchTab(tabId, subOption = null) {
       if (filterSelect) filterSelect.value = "all";
     }
     renderApprovedRecordsTable();
+  } else if (tabId === 'reports') {
+    renderReportArchives();
   }
   
   // Close sidebar drawer if open on mobile devices
@@ -387,6 +434,47 @@ function switchCollectionTab(type) {
   } else {
     btnImport.classList.remove('active'); btnManual.classList.add('active');
     panelImport.classList.remove('active'); panelManual.classList.add('active');
+  }
+}
+
+/* ================= MODAL CONTROLS ================= */
+function openEsgDataCollectionModal(subOption = null) {
+  const modal = document.getElementById('data-collection-modal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    if (subOption === 'manual') {
+      switchCollectionTab('manual');
+    } else {
+      switchCollectionTab('import');
+    }
+    lucide.createIcons();
+  }
+}
+
+function closeEsgDataCollectionModal(event = null) {
+  if (event && event.target !== event.currentTarget) return;
+  const modal = document.getElementById('data-collection-modal');
+  if (modal) {
+    modal.classList.add('hidden');
+    clearManualEditingState();
+  }
+}
+
+function openReportGeneratorModal() {
+  const modal = document.getElementById('report-generator-modal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    // Pre-populate period options
+    handleReportScopeChange();
+    lucide.createIcons();
+  }
+}
+
+function closeReportGeneratorModal(event = null) {
+  if (event && event.target !== event.currentTarget) return;
+  const modal = document.getElementById('report-generator-modal');
+  if (modal) {
+    modal.classList.add('hidden');
   }
 }
 
@@ -540,11 +628,16 @@ function updateDashboardKPIs() {
   const totalCount = records.length;
   const pendingCount = records.filter(r => r.status === 'Pending').length;
   const approvedCount = records.filter(r => r.status === 'Approved').length;
+  const reportCount = Array.isArray(appState.reportArchives) ? appState.reportArchives.length : 0;
   const issuesCount = records.filter(r => r.status === 'Pending' && r.issues && r.issues.length > 0).length;
   document.getElementById('kpi-total-records').textContent = totalCount;
   document.getElementById('kpi-pending-validation').textContent = pendingCount;
   document.getElementById('kpi-approved-data').textContent = approvedCount;
   document.getElementById('kpi-data-issues').textContent = issuesCount;
+  const reportKPI = document.getElementById('kpi-reports');
+  if (reportKPI) {
+    reportKPI.textContent = reportCount;
+  }
   
   // Validation badging in menu
   const validationBadge = document.getElementById('validation-badge');
@@ -1413,6 +1506,7 @@ function proceedToReviewConfirmStep() {
   document.getElementById('import-upload-container').classList.remove('hidden');
   
   resetImportFlow();
+  closeEsgDataCollectionModal();
   switchTab('data-validation', 'Pending');
 }
 function downloadESGTemplate() {
@@ -1436,6 +1530,7 @@ function clearManualForm() {
   const selectPeriod = document.getElementById('form-period');
   if (selectDept) selectDept.selectedIndex = 0;
   if (selectPeriod) selectPeriod.selectedIndex = 0;
+  clearManualEditingState();
   
   const feedbackCard = document.getElementById('manual-validation-feedback');
   if (feedbackCard) feedbackCard.classList.add('hidden');
@@ -1598,6 +1693,133 @@ function saveFormDraft() {
   alert("Form draft saved in memory successfully!");
 }
 
+function getManualFormElements() {
+  return {
+    department: document.getElementById('form-department'),
+    period: document.getElementById('form-period'),
+    carbon: document.getElementById('env-carbon'),
+    energy: document.getElementById('env-energy'),
+    water: document.getElementById('env-water'),
+    employees: document.getElementById('soc-employees'),
+    training: document.getElementById('soc-training'),
+    incidents: document.getElementById('soc-incidents'),
+    meetings: document.getElementById('gov-meetings'),
+    compliance: document.getElementById('gov-compliance'),
+    audits: document.getElementById('gov-audits'),
+    comments: document.getElementById('form-comments')
+  };
+}
+
+function ensureSelectOption(selectElement, value) {
+  if (!selectElement) return;
+  const existingOption = Array.from(selectElement.options).find(option => option.value === value);
+  if (!existingOption) {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = value;
+    selectElement.appendChild(option);
+  }
+  selectElement.value = value;
+}
+
+function fillManualEntryForm(record) {
+  if (!record) return;
+
+  const elements = getManualFormElements();
+  ensureSelectOption(elements.department, record.department);
+  ensureSelectOption(elements.period, record.period);
+  elements.carbon.value = record.env?.carbon ?? '';
+  elements.energy.value = record.env?.energy ?? '';
+  elements.water.value = record.env?.water ?? '';
+  elements.employees.value = record.soc?.employees ?? '';
+  elements.training.value = record.soc?.training ?? '';
+  elements.incidents.value = record.soc?.incidents ?? '';
+  elements.meetings.value = record.gov?.meetings ?? '';
+  elements.compliance.value = record.gov?.compliance ?? '';
+  elements.audits.value = record.gov?.audits ?? '';
+  elements.comments.value = record.comments || '';
+
+  const banner = document.getElementById('manual-edit-banner');
+  if (banner) {
+    banner.textContent = `Editing ${record.id}. Changes will be resubmitted for validation.`;
+    banner.classList.remove('hidden');
+  }
+}
+
+function clearManualEditingState() {
+  editingRecordId = null;
+  const banner = document.getElementById('manual-edit-banner');
+  if (banner) {
+    banner.classList.add('hidden');
+    banner.textContent = '';
+  }
+}
+
+function editRecord(recordId) {
+  const record = appState.records.find(rec => rec.id === recordId);
+  if (!record) return;
+
+  editingRecordId = recordId;
+  fillManualEntryForm(record);
+  switchTab('data-collection', 'manual');
+}
+
+function viewRecordDetails(recordId) {
+  openEsgViewModal(recordId);
+}
+
+function revalidateRecord(recordId) {
+  const record = appState.records.find(rec => rec.id === recordId);
+  if (!record) return;
+
+  selectedRecordForValidation = recordId;
+  validationSearchQuery = recordId.toLowerCase();
+  const searchInput = document.getElementById('validation-search');
+  if (searchInput) searchInput.value = recordId;
+  activeValidationTab = 'All';
+  currentRecordPaginationPage = 1;
+  switchTab('data-validation', 'All');
+
+  setTimeout(() => {
+    const row = document.getElementById(`row-${recordId}`);
+    if (row) {
+      row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      row.classList.add('inspection-target');
+    }
+    openRecordModal(recordId);
+  }, 150);
+}
+
+/* openValidationConfirmModal is defined at the bottom of this file (enhanced version) */
+
+
+function closeValidationConfirmModal() {
+  const modal = document.getElementById('validation-confirm-modal');
+  const reasonInput = document.getElementById('validation-reject-reason');
+  if (modal) modal.classList.add('hidden');
+  if (reasonInput) reasonInput.value = '';
+  pendingValidationDecision = null;
+}
+
+function confirmValidationDecision() {
+  if (!pendingValidationDecision) return;
+
+  const { action, recordId } = pendingValidationDecision;
+  if (action === 'approve') {
+    approveRecord(recordId);
+  } else {
+    const reasonInput = document.getElementById('validation-reject-reason');
+    rejectRecord(recordId, reasonInput ? reasonInput.value.trim() : '');
+  }
+
+  closeValidationConfirmModal();
+  closeRecordModal();
+}
+
+function toggleReportGeneratorForm() {
+  openReportGeneratorModal();
+}
+
 function submitManualData() {
   const dept = document.getElementById('form-department').value;
   const period = document.getElementById('form-period').value;
@@ -1621,9 +1843,6 @@ function submitManualData() {
   
   const comments = document.getElementById('form-comments').value.trim();
   
-  // Calculate next ID
-  const newId = "REC-" + String(appState.records.length + 1).padStart(3, '0');
-  
   const today = new Date();
   const dateStr = today.toISOString().split('T')[0];
   
@@ -1635,80 +1854,303 @@ function submitManualData() {
   if (training < 0) issues.push("Training hours cannot be negative");
   if (employees <= 0) issues.push("Total employees must be greater than zero");
   
-  const newRecord = {
-    id: newId,
-    department: dept,
-    period: period,
-    submittedOn: dateStr,
-    status: "Pending",
-    env: { carbon, energy, water },
-    soc: { employees, training, incidents },
-    gov: { meetings, compliance, audits },
-    comments: comments || "Manual form submission.",
-    issues: issues
-  };
+  let recordId = editingRecordId;
+  if (editingRecordId) {
+    const existingRecord = appState.records.find(rec => rec.id === editingRecordId);
+    if (!existingRecord) {
+      alert("The record selected for editing could not be found.");
+      return;
+    }
+
+    existingRecord.department = dept;
+    existingRecord.period = period;
+    existingRecord.submittedOn = dateStr;
+    existingRecord.status = "Pending";
+    existingRecord.env = { carbon, energy, water };
+    existingRecord.soc = { employees, training, incidents };
+    existingRecord.gov = { meetings, compliance, audits };
+    existingRecord.comments = comments || "Manual form submission.";
+    existingRecord.issues = issues;
+    delete existingRecord.approvedDate;
+    delete existingRecord.rejectionReason;
+    recordId = existingRecord.id;
+  } else {
+    const newId = "REC-" + String(appState.records.length + 1).padStart(3, '0');
+    appState.records.push({
+      id: newId,
+      department: dept,
+      period: period,
+      submittedOn: dateStr,
+      status: "Pending",
+      env: { carbon, energy, water },
+      soc: { employees, training, incidents },
+      gov: { meetings, compliance, audits },
+      comments: comments || "Manual form submission.",
+      issues: issues
+    });
+    recordId = newId;
+  }
   
-  // Add to state
-  appState.records.push(newRecord);
-  
-  // Log Activity
-  logActivity(newId, "Data submitted", dept, "Pending");
+  logActivity(recordId, editingRecordId ? "Data resubmitted" : "Data submitted", dept, "Pending");
   
   saveAppState();
   
   // Update dashboard stats
   updateDashboardKPIs();
   renderRecentActivities();
+  renderApprovedRecordsTable();
+  renderValidationworkbench();
   
   // Alert success
-  alert(`Record ${newId} created successfully! Redirecting to validation workbench.`);
+  alert(`Record ${recordId} saved successfully! Redirecting to validation workbench.`);
   
   // Reset Form
   clearManualForm();
+  
+  // Close Modal
+  closeEsgDataCollectionModal();
   
   // Transition to validation panel
   switchTab('data-validation', 'Pending');
 }
 
 
-/* ================= MY APPROVED DATA TABLE ================= */
+/* ================= MY ESG DATA TABLE ================= */
+/* ================= APPROVED RECORDS PAGINATION ================= */
+window._approvedCurrentPage = 1;
+window._approvedPageSize = 8;
+window._approvedTotalPages = 1;
+window._approvedFilteredRecords = [];
+
 function renderApprovedRecordsTable() {
   const tbody = document.getElementById('approved-table-body');
   const emptyState = document.getElementById('approved-empty-state');
+  const paginationBar = document.getElementById('approved-pagination');
   if (!tbody) return;
-  
-  const approvedFilter = document.getElementById('esg-filter-dept').value;
-  let approved = appState.records.filter(r => r.status === 'Approved');
-  
-  if (approvedFilter !== 'all') {
-    approved = approved.filter(r => r.department === approvedFilter);
-  }
-  
-  if (approved.length === 0) {
-    tbody.innerHTML = "";
+
+  const deptFilter = document.getElementById('esg-filter-dept') ? document.getElementById('esg-filter-dept').value : 'all';
+  const statusFilter = document.getElementById('esg-filter-status') ? document.getElementById('esg-filter-status').value : 'all';
+
+  let records = [...appState.records];
+  if (deptFilter !== 'all') records = records.filter(r => r.department === deptFilter);
+  if (statusFilter !== 'all') records = records.filter(r => r.status === statusFilter);
+
+  window._approvedFilteredRecords = records;
+
+  if (records.length === 0) {
+    tbody.innerHTML = '';
     emptyState.classList.remove('hidden');
+    if (paginationBar) paginationBar.classList.add('hidden');
     return;
   }
-  
+
   emptyState.classList.add('hidden');
-  tbody.innerHTML = approved.map(r => {
+
+  const pageSize = window._approvedPageSize;
+  const totalPages = Math.max(1, Math.ceil(records.length / pageSize));
+  window._approvedTotalPages = totalPages;
+  // Clamp current page
+  if (window._approvedCurrentPage > totalPages) window._approvedCurrentPage = totalPages;
+  if (window._approvedCurrentPage < 1) window._approvedCurrentPage = 1;
+
+  const start = (window._approvedCurrentPage - 1) * pageSize;
+  const pageRecords = records.slice(start, start + pageSize);
+
+  tbody.innerHTML = pageRecords.map(r => {
+    let badgeClass = 'badge-pending';
+    let displayStatus = r.status;
+    if (r.status === 'Approved') badgeClass = 'badge-approved';
+    if (r.status === 'Rejected') badgeClass = 'badge-rejected';
+    if (r.status === 'Pending' && r.issues && r.issues.length > 0) {
+      badgeClass = 'badge-rejected';
+      displayStatus = 'Issues Found';
+    }
+    const displayDate = r.approvedDate || r.submittedOn || '—';
     return `
-      <tr>
+      <tr id="my-esg-row-${r.id}">
         <td class="font-mono">${r.id}</td>
         <td>${r.department}</td>
         <td>${r.period}</td>
-        <td>${r.env.carbon.toLocaleString()}</td>
-        <td>${r.env.energy.toLocaleString()}</td>
-        <td>${r.env.water.toLocaleString()}</td>
-        <td>${r.soc.employees}</td>
-        <td>${r.approvedDate || '2026-06-04'}</td>
+        <td>${(r.env.carbon || 0).toLocaleString()}</td>
+        <td>${(r.env.energy || 0).toLocaleString()}</td>
+        <td>${(r.env.water || 0).toLocaleString()}</td>
+        <td>${r.soc.employees || 0}</td>
+        <td>${displayDate}</td>
+        <td><span class="badge ${badgeClass}">${displayStatus}</span></td>
+        <td>
+          <div class="actions-cell esg-actions-cell">
+            <button class="action-btn-sm btn-view-detail" onclick="openEsgViewModal('${r.id}')" title="View Details" aria-label="View Details">
+              <i data-lucide="eye"></i><span class="action-btn-label">View</span>
+            </button>
+            <button class="action-btn-sm btn-revalidate" onclick="revalidateRecord('${r.id}')" title="Revalidate in Validation View" aria-label="Revalidate">
+              <i data-lucide="shield-check"></i><span class="action-btn-label">Revalidate</span>
+            </button>
+            <button class="action-btn-sm btn-edit-rec" onclick="editRecord('${r.id}')" title="Edit and Resubmit" aria-label="Edit">
+              <i data-lucide="pencil"></i><span class="action-btn-label">Edit</span>
+            </button>
+          </div>
+        </td>
       </tr>
     `;
   }).join('');
+
+  // Render pagination controls
+  renderApprovedPagination(records.length, totalPages);
+  lucide.createIcons();
+}
+
+function renderApprovedPagination(totalRecords, totalPages) {
+  const bar = document.getElementById('approved-pagination');
+  if (!bar) return;
+
+  const cur = window._approvedCurrentPage;
+  const pageSize = window._approvedPageSize;
+  const start = (cur - 1) * pageSize + 1;
+  const end = Math.min(cur * pageSize, totalRecords);
+
+  if (totalRecords > pageSize) {
+    bar.classList.remove('hidden');
+  } else {
+    bar.classList.add('hidden');
+    return;
+  }
+
+  const infoEl = document.getElementById('approved-page-info');
+  if (infoEl) infoEl.textContent = `Showing ${start}–${end} of ${totalRecords} records`;
+
+  // Page number pills
+  const pillsEl = document.getElementById('approved-page-pills');
+  if (pillsEl) {
+    let pills = '';
+    const maxPills = 5;
+    let startPage = Math.max(1, cur - Math.floor(maxPills / 2));
+    let endPage = Math.min(totalPages, startPage + maxPills - 1);
+    if (endPage - startPage < maxPills - 1) startPage = Math.max(1, endPage - maxPills + 1);
+
+    if (startPage > 1) pills += `<button class="page-pill" onclick="goToApprovedPage(1)">1</button><span class="page-ellipsis">…</span>`;
+    for (let p = startPage; p <= endPage; p++) {
+      pills += `<button class="page-pill ${p === cur ? 'active' : ''}" onclick="goToApprovedPage(${p})">${p}</button>`;
+    }
+    if (endPage < totalPages) pills += `<span class="page-ellipsis">…</span><button class="page-pill" onclick="goToApprovedPage(${totalPages})">${totalPages}</button>`;
+    pillsEl.innerHTML = pills;
+  }
+
+  // Arrow states
+  const setDisabled = (id, val) => { const el = document.getElementById(id); if (el) el.disabled = val; };
+  setDisabled('approved-first-btn', cur === 1);
+  setDisabled('approved-prev-btn', cur === 1);
+  setDisabled('approved-next-btn', cur === totalPages);
+  setDisabled('approved-last-btn', cur === totalPages);
+}
+
+function goToApprovedPage(page) {
+  const totalPages = window._approvedTotalPages || 1;
+  page = Math.max(1, Math.min(page, totalPages));
+  window._approvedCurrentPage = page;
+  renderApprovedRecordsTable();
+}
+
+function changeApprovedPageSize(size) {
+  window._approvedPageSize = parseInt(size, 10);
+  window._approvedCurrentPage = 1;
+  renderApprovedRecordsTable();
 }
 
 function filterApprovedTable() {
+  window._approvedCurrentPage = 1;
   renderApprovedRecordsTable();
+}
+
+
+/* ================= ESG VIEW MODAL (My ESG Data) ================= */
+function openEsgViewModal(recordId) {
+  const r = appState.records.find(rec => rec.id === recordId);
+  if (!r) return;
+
+  // Populate header
+  document.getElementById('esg-modal-title').textContent = `Record ${r.id} — Full Details`;
+  document.getElementById('esg-modal-subtitle').textContent = `${r.department} · ${r.period} · Submitted ${r.submittedOn}`;
+
+  // Meta fields
+  document.getElementById('evm-record-id').textContent = r.id;
+  document.getElementById('evm-department').textContent = r.department;
+  document.getElementById('evm-period').textContent = r.period;
+  document.getElementById('evm-submitted').textContent = r.submittedOn;
+  document.getElementById('evm-approved-on').textContent = r.approvedDate || 'Pending approval';
+
+  // Status badge
+  const statusEl = document.getElementById('evm-status');
+  statusEl.className = 'badge';
+  statusEl.textContent = r.status;
+  if (r.status === 'Approved') statusEl.classList.add('badge-approved');
+  else if (r.status === 'Rejected') statusEl.classList.add('badge-rejected');
+  else if (r.issues && r.issues.length > 0) {
+    statusEl.textContent = 'Issues Found';
+    statusEl.classList.add('badge-rejected');
+  } else {
+    statusEl.classList.add('badge-pending');
+  }
+
+  // Environmental
+  document.getElementById('evm-carbon').innerHTML = `${(r.env.carbon || 0).toLocaleString()} tCO<sub>2</sub>e`;
+  document.getElementById('evm-energy').textContent = `${(r.env.energy || 0).toLocaleString()} kWh`;
+  document.getElementById('evm-water').textContent = `${(r.env.water || 0).toLocaleString()} m³`;
+
+  // Social
+  document.getElementById('evm-employees').textContent = `${(r.soc.employees || 0).toLocaleString()} Employees`;
+  document.getElementById('evm-training').textContent = `${(r.soc.training || 0).toLocaleString()} Hours`;
+  document.getElementById('evm-incidents').textContent = `${(r.soc.incidents || 0).toLocaleString()} Incidents`;
+
+  // Governance
+  document.getElementById('evm-meetings').textContent = `${(r.gov.meetings || 0).toLocaleString()} Meetings`;
+  document.getElementById('evm-compliance').textContent = `${(r.gov.compliance || 0).toLocaleString()}%`;
+  document.getElementById('evm-audits').textContent = `${(r.gov.audits || 0).toLocaleString()} Audit(s)`;
+
+  // Comments
+  document.getElementById('evm-comments').textContent = r.comments || 'No comments provided.';
+
+  // Issues
+  const issuesCont = document.getElementById('evm-issues-container');
+  const issuesList = document.getElementById('evm-issues-list');
+  if (r.issues && r.issues.length > 0) {
+    issuesCont.classList.remove('hidden');
+    issuesList.innerHTML = r.issues.map(iss => `<li>${iss}</li>`).join('');
+  } else {
+    issuesCont.classList.add('hidden');
+  }
+
+  // Footer action buttons (contextual)
+  const actBtns = document.getElementById('evm-action-buttons');
+  if (r.status === 'Pending') {
+    actBtns.innerHTML = `
+      <button class="btn btn-outline text-danger" onclick="closeEsgViewModal(); setTimeout(()=>revalidateRecord('${r.id}'),100);">
+        <i data-lucide="shield-alert"></i> Go to Validation
+      </button>
+      <button class="btn btn-primary" onclick="closeEsgViewModal(); editRecord('${r.id}');">
+        <i data-lucide="pencil"></i> Edit Record
+      </button>
+    `;
+  } else if (r.status === 'Rejected') {
+    actBtns.innerHTML = `
+      <button class="btn btn-primary" onclick="closeEsgViewModal(); editRecord('${r.id}');">
+        <i data-lucide="pencil"></i> Edit & Resubmit
+      </button>
+    `;
+  } else {
+    actBtns.innerHTML = `
+      <button class="btn btn-outline" onclick="closeEsgViewModal(); revalidateRecord('${r.id}');">
+        <i data-lucide="shield-check"></i> Revalidate
+      </button>
+    `;
+  }
+
+  document.getElementById('esg-view-modal').classList.remove('hidden');
+  lucide.createIcons();
+}
+
+function closeEsgViewModal(event) {
+  if (event && event.target !== document.getElementById('esg-view-modal')) return;
+  document.getElementById('esg-view-modal').classList.add('hidden');
 }
 
 function exportApprovedCSV() {
@@ -1828,9 +2270,10 @@ function renderValidationworkbench() {
       
     const statusText = r.status === "Pending" && hasWarnings ? "Errors Found" : r.status;
     const finalBadgeClass = statusText === "Errors Found" ? "badge-rejected" : badgeClass;
+    const isFocusedRecord = selectedRecordForValidation === r.id;
     
     return `
-      <tr id="row-${r.id}">
+      <tr id="row-${r.id}" class="${isFocusedRecord ? 'inspection-target' : ''}">
         <td class="font-mono">${r.id} ${warningText}</td>
         <td>${r.department}</td>
         <td>${r.submittedOn}</td>
@@ -1839,8 +2282,8 @@ function renderValidationworkbench() {
           <div class="actions-cell">
             <button class="action-btn-sm" onclick="openRecordModal('${r.id}')" title="View details"><i data-lucide="eye"></i></button>
             ${r.status === 'Pending' ? `
-              <button class="action-btn-sm btn-approve" onclick="approveRecord('${r.id}')" title="Approve"><i data-lucide="check"></i></button>
-              <button class="action-btn-sm btn-reject" onclick="rejectRecord('${r.id}')" title="Reject"><i data-lucide="x"></i></button>
+              <button class="action-btn-sm btn-approve" onclick="openValidationConfirmModal('approve', '${r.id}')" title="Approve"><i data-lucide="check"></i></button>
+              <button class="action-btn-sm btn-reject" onclick="openValidationConfirmModal('reject', '${r.id}')" title="Reject"><i data-lucide="x"></i></button>
             ` : ""}
           </div>
         </td>
@@ -1854,6 +2297,16 @@ function renderValidationworkbench() {
   
   // Sidebar alerts list
   updateValidationSidebarLists();
+
+  if (selectedRecordForValidation) {
+    const focusedRow = document.getElementById(`row-${selectedRecordForValidation}`);
+    if (focusedRow) {
+      focusedRow.classList.add('inspection-target');
+      setTimeout(() => {
+        focusedRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 50);
+    }
+  }
   
   lucide.createIcons();
 }
@@ -1975,6 +2428,7 @@ function changeValidationPage(page) {
 }
 
 function focusValidationRecord(recordId) {
+  selectedRecordForValidation = recordId;
   validationSearchQuery = recordId.toLowerCase();
   document.getElementById('validation-search').value = recordId;
   currentRecordPaginationPage = 1;
@@ -2002,6 +2456,7 @@ function approveRecord(recordId) {
     record.status = "Approved";
     record.approvedDate = dateStr;
     record.issues = []; // clear error notifications on approval
+    delete record.rejectionReason;
     
     // Log Activity
     logActivity(recordId, "Data approved", record.department, "Approved");
@@ -2018,16 +2473,18 @@ function approveRecord(recordId) {
     
     saveAppState();
     updateDashboardKPIs();
+    renderApprovedRecordsTable();
     renderValidationworkbench();
     updateNotificationBadge();
     renderNotificationsList();
   }
 }
 
-function rejectRecord(recordId) {
+function rejectRecord(recordId, reason = '') {
   const record = appState.records.find(r => r.id === recordId);
   if (record) {
     record.status = "Rejected";
+    record.rejectionReason = reason || 'No rejection reason provided.';
     
     // Log Activity
     logActivity(recordId, "Data rejected", record.department, "Rejected");
@@ -2036,7 +2493,7 @@ function rejectRecord(recordId) {
       id: Date.now(),
       type: "error",
       title: "Record Rejected",
-      text: `${recordId} for ${record.department} rejected.`,
+      text: `${recordId} for ${record.department} rejected.${reason ? ` Reason: ${reason}` : ''}`,
       time: "Just now",
       unread: true
     });
@@ -2060,12 +2517,17 @@ function openRecordModal(recordId) {
   if (!r) return;
   
   selectedRecordForModal = r;
+  selectedRecordForValidation = recordId;
   
   document.getElementById('modal-record-title').textContent = `Record ${r.id} Details`;
   document.getElementById('md-record-id').textContent = r.id;
   document.getElementById('md-department').textContent = r.department;
   document.getElementById('md-period').textContent = r.period;
   document.getElementById('md-submitted-on').textContent = r.submittedOn;
+  const approvedDateElement = document.getElementById('md-approved-on');
+  if (approvedDateElement) {
+    approvedDateElement.textContent = r.approvedDate || 'Pending approval';
+  }
   
   // Status badging
   const statusSpan = document.getElementById('md-status');
@@ -2124,15 +2586,13 @@ function closeRecordModal() {
 
 function approveRecordFromModal() {
   if (selectedRecordForModal) {
-    approveRecord(selectedRecordForModal.id);
-    closeRecordModal();
+    openValidationConfirmModal('approve', selectedRecordForModal.id);
   }
 }
 
 function rejectRecordFromModal() {
   if (selectedRecordForModal) {
-    rejectRecord(selectedRecordForModal.id);
-    closeRecordModal();
+    openValidationConfirmModal('reject', selectedRecordForModal.id);
   }
 }
 
@@ -2161,6 +2621,13 @@ function handleReportScopeChange() {
       <option value="FY 2025">FY 2025 (Annual Report)</option>
       <option value="FY 2024">FY 2024 (Historical Archive)</option>
     `;
+  } else {
+    html = `
+      <option value="Q1 2026">Q1 2026</option>
+      <option value="Q2 2026">Q2 2026 (Draft)</option>
+      <option value="Q4 2025">Q4 2025</option>
+      <option value="Q3 2025">Q3 2025</option>
+    `;
   }
   
   periodSelect.innerHTML = html;
@@ -2171,69 +2638,443 @@ function triggerGenerateReport() {
   const format = document.getElementById('rep-format').value;
   const scope = document.getElementById('rep-time-scope').value;
   const period = document.getElementById('rep-time-period').value;
-  
-  // Clean period string for filename
+  const focusAreas = Array.from(document.querySelectorAll('input[name="focus-area"]:checked')).map(input => input.value);
+  const approvedRecords = appState.records.filter(record => record.status === 'Approved');
+
+  if (approvedRecords.length === 0) {
+    showToast('No approved ESG records are available for report generation.', 'warning');
+    return;
+  }
+
   const cleanPeriod = period.split(' ')[0].replace(/[^a-zA-Z0-9]/g, '');
-  
   const today = new Date().toISOString().split('T')[0];
   const reportName = `ESG_${type}_Report_${cleanPeriod}_${today.replace(/-/g, '_')}`;
-  
-  // Add new report row to archives
-  const tbody = document.getElementById('report-archives-body');
-  const size = (Math.random() * (4.2 - 1.2) + 1.2).toFixed(1) + " MB";
-  
-  const newRow = document.createElement('tr');
-  newRow.innerHTML = `
-    <td>${reportName}</td>
-    <td>${today}</td>
-    <td>${type} (${scope})</td>
-    <td><span class="badge ${format === 'PDF' ? 'badge-pdf' : 'badge-approved'}">${format}</span></td>
-    <td>${size}</td>
-    <td><button class="btn btn-outline btn-sm" onclick="alert('Downloading report archive...')"><i data-lucide="download"></i> Download</button></td>
-  `;
-  
-  tbody.insertBefore(newRow, tbody.firstChild);
-  
-  // Update activity log
-  appState.recentActivities.unshift({
-    id: "REP-NEW",
-    action: `Report generated (${cleanPeriod} / ${scope})`,
-    dept: "All",
-    time: "Just now",
-    status: "Done"
-  });
-  
-  // Increment report counters
-  const reportKPI = document.getElementById('kpi-reports');
-  if (reportKPI) {
-    const curVal = parseInt(reportKPI.textContent);
-    reportKPI.textContent = curVal + 1;
-  }
-  
-  saveAppState();
-  renderRecentActivities();
-  lucide.createIcons();
+  const size = (Math.random() * (4.2 - 1.2) + 1.2).toFixed(1) + ' MB';
 
-  alert(`Report ${reportName}.${format.toLowerCase()} generated successfully!`);
+  const generatedReport = {
+    id: `REP-${today.replace(/-/g, '')}-${String(Date.now()).slice(-4)}`,
+    name: reportName,
+    dateGenerated: today,
+    reportType: `${type} (${scope})`,
+    format,
+    size,
+    approvedCount: approvedRecords.length,
+    focusAreas,
+    downloadContent: [
+      `Report Name: ${reportName}`,
+      `Generated: ${today}`,
+      `Type: ${type}`,
+      `Scope: ${scope}`,
+      `Format: ${format}`,
+      `Reporting Period: ${period}`,
+      `Approved Records Included: ${approvedRecords.length}`,
+      `Focus Areas: ${focusAreas.join(', ') || 'None'}`
+    ].join('\n')
+  };
+
+  if (!Array.isArray(appState.reportArchives)) {
+    appState.reportArchives = [];
+  }
+  appState.reportArchives.unshift(generatedReport);
+
+  appState.recentActivities.unshift({
+    id: generatedReport.id,
+    action: `Report generated (${cleanPeriod} / ${scope})`,
+    dept: 'All',
+    time: 'Just now',
+    status: 'Done'
+  });
+
+  appState.notifications.unshift({
+    id: Date.now(),
+    type: 'success',
+    title: 'Report Generated',
+    text: `${reportName} compiled from ${approvedRecords.length} approved ESG records.`,
+    time: 'Just now',
+    unread: true
+  });
+
+  saveAppState();
+  updateDashboardKPIs();
+  renderRecentActivities();
+  renderReportArchives();
+  updateNotificationBadge();
+  renderNotificationsList();
+
+  // Close the generator modal
+  closeReportGeneratorModal();
+
+  lucide.createIcons();
+  showToast(`Report "${reportName}" generated successfully and added to the archive!`, 'success');
 }
+
+function renderReportArchives() {
+  const tbody = document.getElementById('report-archives-body');
+  if (!tbody) return;
+
+  const archives = Array.isArray(appState.reportArchives) ? appState.reportArchives : [];
+  if (archives.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" class="empty-state-row">No reports have been generated yet. Click "Generate New Report" to create one.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = archives.map(report => {
+    let formatBadge = 'badge-approved';
+    if (report.format === 'PDF') formatBadge = 'badge-pdf';
+    else if (report.format === 'Excel') formatBadge = 'badge-success';
+    else if (report.format === 'CSV') formatBadge = 'badge-pending';
+    return `
+      <tr>
+        <td><strong>${report.name}</strong></td>
+        <td>${report.dateGenerated}</td>
+        <td>${report.reportType}</td>
+        <td><span class="badge ${formatBadge}">${report.format}</span></td>
+        <td>${report.size}</td>
+        <td>
+          <div class="actions-cell" style="gap:0.4rem;">
+            <button class="btn btn-outline btn-sm" onclick="downloadReportArchive('${report.id}')">
+              <i data-lucide="download"></i> Download
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="openShareReportModal('${report.id}')">
+              <i data-lucide="share-2"></i> Share
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  lucide.createIcons();
+}
+
+/* ================= REPORT DOWNLOAD — PROPER FORMATTED TEMPLATES ================= */
+function downloadReportArchive(reportId) {
+  const report = (appState.reportArchives || []).find(item => item.id === reportId);
+  if (!report) return;
+  _triggerFormattedDownload(report, report.format);
+  showToast(`Downloading "${report.name}" as ${report.format}...`, 'success');
+}
+
+function _triggerFormattedDownload(report, format) {
+  if (format === 'PDF') {
+    _downloadPDFReport(report);
+  } else if (format === 'CSV') {
+    _downloadCSVReport(report);
+  } else if (format === 'Excel') {
+    _downloadExcelReport(report);
+  } else {
+    _downloadCSVReport(report);
+  }
+}
+
+function _buildReportData(report) {
+  const approvedRecords = appState.records.filter(r => r.status === 'Approved');
+  const totalCarbon = approvedRecords.reduce((s, r) => s + (r.env?.carbon || 0), 0);
+  const totalEnergy = approvedRecords.reduce((s, r) => s + (r.env?.energy || 0), 0);
+  const totalWater = approvedRecords.reduce((s, r) => s + (r.env?.water || 0), 0);
+  const totalEmployees = approvedRecords.reduce((s, r) => s + (r.soc?.employees || 0), 0);
+  return { approvedRecords, totalCarbon, totalEnergy, totalWater, totalEmployees };
+}
+
+function _downloadCSVReport(report) {
+  const { approvedRecords, totalCarbon, totalEnergy, totalWater, totalEmployees } = _buildReportData(report);
+  const today = new Date().toISOString().split('T')[0];
+
+  const header = [
+    '# ESG PLATFORM — OFFICIAL REPORT',
+    `# Report Name: ${report.name}`,
+    `# Report Type: ${report.reportType}`,
+    `# Date Generated: ${report.dateGenerated}`,
+    `# Downloaded On: ${today}`,
+    `# Total Approved Records: ${approvedRecords.length}`,
+    '',
+    '## SUMMARY TOTALS',
+    `Total Carbon Emissions (tCO2e),${totalCarbon.toFixed(1)}`,
+    `Total Energy Consumption (kWh),${totalEnergy.toFixed(0)}`,
+    `Total Water Usage (m3),${totalWater.toFixed(1)}`,
+    `Total Employees Reported,${totalEmployees}`,
+    '',
+    '## DETAILED RECORDS',
+    'Record ID,Department,Period,Submitted On,Status,Carbon (tCO2e),Energy (kWh),Water (m3),Employees,Training (hrs),Incidents,Board Meetings,Compliance (%),Audits'
+  ].join('\n');
+
+  const rows = approvedRecords.map(r =>
+    [
+      r.id, r.department, r.period, r.submittedOn, r.status,
+      (r.env?.carbon || 0).toFixed(1),
+      (r.env?.energy || 0).toFixed(0),
+      (r.env?.water || 0).toFixed(1),
+      r.soc?.employees || 0,
+      r.soc?.training || 0,
+      r.soc?.incidents || 0,
+      r.gov?.meetings || 0,
+      r.gov?.compliance || 0,
+      r.gov?.audits || 0
+    ].join(',')
+  ).join('\n');
+
+  const content = header + '\n' + rows;
+  _downloadBlob(content, `${report.name}.csv`, 'text/csv;charset=utf-8;');
+}
+
+function _downloadExcelReport(report) {
+  // Build a multi-sheet HTML workbook that Excel can open
+  const { approvedRecords, totalCarbon, totalEnergy, totalWater, totalEmployees } = _buildReportData(report);
+  const today = new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'long', year:'numeric' });
+
+  const summaryRows = `
+    <tr><th>Metric</th><th>Value</th></tr>
+    <tr><td>Report Name</td><td>${report.name}</td></tr>
+    <tr><td>Report Type</td><td>${report.reportType}</td></tr>
+    <tr><td>Date Generated</td><td>${report.dateGenerated}</td></tr>
+    <tr><td>Downloaded On</td><td>${today}</td></tr>
+    <tr><td>Total Approved Records</td><td>${approvedRecords.length}</td></tr>
+    <tr><td>&nbsp;</td><td></td></tr>
+    <tr style="background:#e8f4fd"><th>ESG Totals</th><th></th></tr>
+    <tr><td>Total Carbon Emissions (tCO2e)</td><td>${totalCarbon.toFixed(1)}</td></tr>
+    <tr><td>Total Energy Consumption (kWh)</td><td>${totalEnergy.toFixed(0)}</td></tr>
+    <tr><td>Total Water Usage (m3)</td><td>${totalWater.toFixed(1)}</td></tr>
+    <tr><td>Total Employees Reported</td><td>${totalEmployees}</td></tr>
+  `;
+
+  const detailHeader = `<tr style="background:#1e3a5f;color:white;">
+    <th>Record ID</th><th>Department</th><th>Period</th><th>Submitted On</th><th>Status</th>
+    <th>Carbon (tCO2e)</th><th>Energy (kWh)</th><th>Water (m3)</th>
+    <th>Employees</th><th>Training (hrs)</th><th>Incidents</th>
+    <th>Board Meetings</th><th>Compliance (%)</th><th>Audits</th>
+  </tr>`;
+
+  const detailRows = approvedRecords.map((r, i) => `
+    <tr style="background:${i % 2 === 0 ? '#ffffff' : '#f0f4f8'}">
+      <td>${r.id}</td><td>${r.department}</td><td>${r.period}</td><td>${r.submittedOn}</td><td>${r.status}</td>
+      <td>${(r.env?.carbon || 0).toFixed(1)}</td><td>${(r.env?.energy || 0).toFixed(0)}</td><td>${(r.env?.water || 0).toFixed(1)}</td>
+      <td>${r.soc?.employees || 0}</td><td>${r.soc?.training || 0}</td><td>${r.soc?.incidents || 0}</td>
+      <td>${r.gov?.meetings || 0}</td><td>${r.gov?.compliance || 0}</td><td>${r.gov?.audits || 0}</td>
+    </tr>`).join('');
+
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+  <head><meta charset="UTF-8"><style>table{border-collapse:collapse;}th,td{border:1px solid #ccc;padding:6px 10px;font-family:Calibri,sans-serif;font-size:11pt;}th{font-weight:bold;}</style></head>
+  <body>
+    <h2 style="font-family:Calibri;color:#1e3a5f;">ESG Platform — ${report.name}</h2>
+    <h3 style="font-family:Calibri;color:#555;">Executive Summary</h3>
+    <table>${summaryRows}</table>
+    <br/>
+    <h3 style="font-family:Calibri;color:#1e3a5f;">Detailed ESG Records</h3>
+    <table>${detailHeader}${detailRows}</table>
+  </body></html>`;
+
+  _downloadBlob(html, `${report.name}.xls`, 'application/vnd.ms-excel;charset=utf-8;');
+}
+
+function _downloadPDFReport(report) {
+  const { approvedRecords, totalCarbon, totalEnergy, totalWater, totalEmployees } = _buildReportData(report);
+  const today = new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'long', year:'numeric' });
+
+  const detailRows = approvedRecords.map((r, i) => `
+    <tr style="background:${i % 2 === 0 ? '#fff' : '#f5f8ff'};">
+      <td>${r.id}</td><td>${r.department}</td><td>${r.period}</td>
+      <td>${(r.env?.carbon || 0).toFixed(1)}</td><td>${(r.env?.energy || 0).toFixed(0)}</td>
+      <td>${(r.env?.water || 0).toFixed(1)}</td><td>${r.soc?.employees || 0}</td><td>${r.status}</td>
+    </tr>`).join('');
+
+  const printHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>${report.name} — ESG Report</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; color: #222; background: #fff; padding: 0; }
+    @page { size: A4; margin: 20mm 15mm; }
+    .cover { background: linear-gradient(135deg, #1e3a5f 0%, #2d6a9f 100%); color: white; padding: 60px 50px; }
+    .cover h1 { font-size: 2.2rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .cover h2 { font-size: 1.1rem; font-weight: 400; opacity: 0.85; margin-bottom: 2rem; }
+    .cover .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 2rem; }
+    .cover .meta-item { background: rgba(255,255,255,0.12); border-radius: 8px; padding: 14px 18px; }
+    .cover .meta-item label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.7; }
+    .cover .meta-item p { font-size: 1rem; font-weight: 600; margin-top: 4px; }
+    .section { padding: 30px 50px; }
+    .section h3 { font-size: 1.1rem; font-weight: 700; color: #1e3a5f; border-bottom: 2px solid #2d6a9f; padding-bottom: 6px; margin-bottom: 18px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+    .kpi-card { border: 1px solid #e0e7f0; border-radius: 8px; padding: 16px 14px; text-align: center; }
+    .kpi-card .kpi-val { font-size: 1.6rem; font-weight: 700; color: #1e3a5f; }
+    .kpi-card .kpi-label { font-size: 0.75rem; color: #666; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    thead tr { background: #1e3a5f; color: white; }
+    thead th { padding: 9px 10px; text-align: left; font-weight: 600; }
+    tbody td { padding: 7px 10px; border-bottom: 1px solid #e0e7ef; }
+    .footer { background: #f0f4f8; padding: 16px 50px; font-size: 0.75rem; color: #888; display: flex; justify-content: space-between; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 100px; font-size: 0.7rem; font-weight: 600; }
+    .badge-approved { background:#d1fae5; color:#065f46; }
+    .badge-pending { background:#fef3c7; color:#92400e; }
+    .badge-rejected { background:#fee2e2; color:#991b1b; }
+    @media print { button { display: none; } }
+  </style>
+</head>
+<body>
+  <div class="cover">
+    <h1>${report.name.replace(/_/g, ' ')}</h1>
+    <h2>Environmental, Social & Governance Report</h2>
+    <div class="meta">
+      <div class="meta-item"><label>Report Type</label><p>${report.reportType}</p></div>
+      <div class="meta-item"><label>Date Generated</label><p>${report.dateGenerated}</p></div>
+      <div class="meta-item"><label>Records Included</label><p>${approvedRecords.length} Approved</p></div>
+      <div class="meta-item"><label>Downloaded On</label><p>${today}</p></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Key Performance Indicators</h3>
+    <div class="kpi-grid">
+      <div class="kpi-card"><div class="kpi-val">${totalCarbon.toFixed(0)}</div><div class="kpi-label">Carbon (tCO2e)</div></div>
+      <div class="kpi-card"><div class="kpi-val">${(totalEnergy/1000).toFixed(0)}K</div><div class="kpi-label">Energy (kWh)</div></div>
+      <div class="kpi-card"><div class="kpi-val">${totalWater.toFixed(0)}</div><div class="kpi-label">Water (m3)</div></div>
+      <div class="kpi-card"><div class="kpi-val">${totalEmployees.toLocaleString()}</div><div class="kpi-label">Employees</div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Approved ESG Records — ${today}</h3>
+    <table>
+      <thead><tr>
+        <th>ID</th><th>Department</th><th>Period</th>
+        <th>Carbon (tCO2e)</th><th>Energy (kWh)</th><th>Water (m3)</th>
+        <th>Employees</th><th>Status</th>
+      </tr></thead>
+      <tbody>${detailRows}</tbody>
+    </table>
+  </div>
+
+  <div class="footer">
+    <span>ESG Platform — Confidential</span>
+    <span>Report ID: ${report.id} &nbsp;|&nbsp; Generated: ${report.dateGenerated}</span>
+  </div>
+
+  <script>window.onload = function() { window.print(); };<\/script>
+</body></html>`;
+
+  const win = window.open('', '_blank');
+  if (win) {
+    win.document.open();
+    win.document.write(printHtml);
+    win.document.close();
+  } else {
+    // Fallback: download as HTML
+    _downloadBlob(printHtml, `${report.name}_report.html`, 'text/html;charset=utf-8;');
+  }
+}
+
+function _downloadBlob(content, filename, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
+}
+
+/* ================= SHARE REPORT MODAL ================= */
+let _currentShareReportId = null;
+
+function openShareReportModal(reportId) {
+  const report = (appState.reportArchives || []).find(r => r.id === reportId);
+  if (!report) return;
+  _currentShareReportId = reportId;
+
+  document.getElementById('share-preview-name').textContent = report.name.replace(/_/g, ' ');
+  document.getElementById('share-preview-meta').textContent = `${report.reportType} · ${report.format} · ${report.dateGenerated}`;
+
+  // Generate a shareable link (simulated — in a real app this would be a server URL)
+  const shareLink = `${window.location.origin}${window.location.pathname}?report=${encodeURIComponent(reportId)}&shared=1`;
+  const linkInput = document.getElementById('share-link-input');
+  if (linkInput) linkInput.value = shareLink;
+
+  // Clear email field
+  const emailInput = document.getElementById('share-email-input');
+  if (emailInput) emailInput.value = '';
+
+  document.getElementById('share-report-modal').classList.remove('hidden');
+  lucide.createIcons();
+}
+
+function closeShareReportModal() {
+  document.getElementById('share-report-modal').classList.add('hidden');
+  _currentShareReportId = null;
+}
+
+function copyShareLink() {
+  const input = document.getElementById('share-link-input');
+  if (!input) return;
+  navigator.clipboard.writeText(input.value).then(() => {
+    const btn = document.getElementById('copy-link-btn');
+    if (btn) {
+      btn.innerHTML = '<i data-lucide="check"></i> Copied!';
+      btn.style.background = 'var(--accent-success, #16a34a)';
+      lucide.createIcons();
+      setTimeout(() => {
+        btn.innerHTML = '<i data-lucide="copy"></i> Copy';
+        btn.style.background = '';
+        lucide.createIcons();
+      }, 2000);
+    }
+    showToast('Link copied to clipboard!', 'success');
+  }).catch(() => {
+    input.select();
+    document.execCommand('copy');
+    showToast('Link copied!', 'success');
+  });
+}
+
+function sendReportByEmail() {
+  const emailInput = document.getElementById('share-email-input');
+  const email = emailInput ? emailInput.value.trim() : '';
+  if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    showToast('Please enter a valid email address.', 'error');
+    return;
+  }
+  const report = (appState.reportArchives || []).find(r => r.id === _currentShareReportId);
+  const reportName = report ? report.name.replace(/_/g, ' ') : 'ESG Report';
+  const shareLink = document.getElementById('share-link-input')?.value || '';
+
+  // Use mailto as the sharing mechanism
+  const subject = encodeURIComponent(`Shared ESG Report: ${reportName}`);
+  const body = encodeURIComponent(`Hi,\n\nI'm sharing the following ESG report with you:\n\nReport: ${reportName}\nLink: ${shareLink}\n\nThis report was generated from the ESG Platform.\n\nBest regards`);
+  window.open(`mailto:${email}?subject=${subject}&body=${body}`, '_self');
+  showToast(`Email client opened for ${email}`, 'success');
+}
+
+function downloadSharedReport(format) {
+  if (!_currentShareReportId) return;
+  const report = (appState.reportArchives || []).find(r => r.id === _currentShareReportId);
+  if (!report) return;
+  _triggerFormattedDownload(report, format);
+  showToast(`Downloading as ${format}...`, 'success');
+}
+
 /* ================= SETTINGS & THEMING ================= */
 function saveSettings() {
   const fullname = document.getElementById('set-fullname').value.trim();
   const email = document.getElementById('set-email').value.trim();
-  
-  if (fullname === "") {
-    alert("Full Name cannot be blank.");
+
+  if (fullname === '') {
+    showToast('Full Name cannot be blank.', 'error');
     return;
   }
-  
+
   appState.currentUser.fullname = fullname;
   appState.currentUser.email = email;
   appState.currentUser.initials = fullname.split(' ').map(n => n[0]).join('').toUpperCase();
-  
+
   saveAppState();
   updateProfileDetailsUI();
-  
-  alert("Settings configurations saved successfully!");
+  showToast('Settings saved successfully!', 'success');
 }
 
 function toggleDarkMode(enabled) {
@@ -2243,7 +3084,142 @@ function toggleDarkMode(enabled) {
     document.body.classList.remove('dark');
   }
   localStorage.setItem(CONFIG.DARK_MODE_KEY, String(enabled));
-  
-  // Redraw charts using new theme config colors
   updateDashboardCharts();
+}
+
+function toggleColorblindModeBtn() {
+  const isActive = document.body.classList.toggle('colorblind');
+  const checkbox = document.getElementById('set-colorblind-mode');
+  if (checkbox) checkbox.checked = isActive;
+}
+
+function toggleColorblindMode(enabled) {
+  if (enabled) {
+    document.body.classList.add('colorblind');
+  } else {
+    document.body.classList.remove('colorblind');
+  }
+}
+
+
+/* ================= TOAST NOTIFICATION SYSTEM ================= */
+function showToast(message, type = 'success') {
+  // Remove existing toast if present
+  const existing = document.getElementById('app-toast');
+  if (existing) existing.remove();
+
+  const iconMap = {
+    success: 'check-circle-2',
+    error: 'alert-circle',
+    warning: 'alert-triangle',
+    info: 'info'
+  };
+  const colorMap = {
+    success: '#10b981',
+    error: '#ef4444',
+    warning: '#f59e0b',
+    info: '#3b82f6'
+  };
+
+  const toast = document.createElement('div');
+  toast.id = 'app-toast';
+  toast.setAttribute('role', 'alert');
+  toast.style.cssText = `
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-left: 4px solid ${colorMap[type] || colorMap.success};
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    max-width: 420px;
+    min-width: 280px;
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    color: var(--neutral-700);
+    animation: toastSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  `;
+
+  toast.innerHTML = `
+    <i data-lucide="${iconMap[type] || 'info'}" style="color:${colorMap[type]};width:20px;height:20px;flex-shrink:0;"></i>
+    <span style="flex:1;line-height:1.4;">${message}</span>
+    <button onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--neutral-400);cursor:pointer;padding:0;margin-left:0.5rem;" aria-label="Dismiss">
+      <i data-lucide="x" style="width:16px;height:16px;"></i>
+    </button>
+  `;
+
+  // Add animation keyframe if not present
+  if (!document.getElementById('toast-styles')) {
+    const style = document.createElement('style');
+    style.id = 'toast-styles';
+    style.textContent = `
+      @keyframes toastSlideIn {
+        from { opacity: 0; transform: translateX(100%) scale(0.9); }
+        to   { opacity: 1; transform: translateX(0) scale(1); }
+      }
+      @keyframes toastSlideOut {
+        from { opacity: 1; transform: translateX(0) scale(1); }
+        to   { opacity: 0; transform: translateX(100%) scale(0.9); }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  document.body.appendChild(toast);
+  lucide.createIcons();
+
+  // Auto-dismiss
+  setTimeout(() => {
+    if (toast.parentElement) {
+      toast.style.animation = 'toastSlideOut 0.3s ease forwards';
+      setTimeout(() => toast.remove(), 300);
+    }
+  }, 4000);
+}
+
+
+/* ================= VALIDATION CONFIRM MODAL ENHANCEMENTS ================= */
+function openValidationConfirmModal(action, recordId) {
+  const record = appState.records.find(rec => rec.id === recordId);
+  if (!record) return;
+
+  pendingValidationDecision = { action, recordId };
+  const modal = document.getElementById('validation-confirm-modal');
+  const title = document.getElementById('validation-confirm-title');
+  const message = document.getElementById('validation-confirm-message');
+  const reasonWrap = document.getElementById('validation-confirm-reason-wrap');
+  const reasonInput = document.getElementById('validation-reject-reason');
+  const confirmButton = document.getElementById('validation-confirm-button');
+  const iconWrap = document.getElementById('validation-confirm-icon-wrap');
+
+  if (action === 'approve') {
+    title.textContent = 'Confirm Approval';
+    message.innerHTML = `<strong>Are you sure you want to approve this ESG record?</strong><br><span style="color:var(--neutral-500);font-size:0.875rem;">This will mark the record as officially approved and update all KPI counters.</span>`;
+    reasonWrap.classList.add('hidden');
+    if (reasonInput) reasonInput.value = '';
+    confirmButton.textContent = 'Confirm Approve';
+    confirmButton.className = 'btn btn-primary';
+    if (iconWrap) {
+      iconWrap.className = 'confirm-icon-wrap confirm-icon-approve';
+    }
+  } else {
+    title.textContent = 'Confirm Rejection';
+    message.innerHTML = `<strong>Are you sure you want to reject this ESG record?</strong><br><span style="color:var(--neutral-500);font-size:0.875rem;">The record will be marked as Rejected. You may optionally provide a reason below.</span>`;
+    reasonWrap.classList.remove('hidden');
+    confirmButton.textContent = 'Confirm Reject';
+    confirmButton.className = 'btn btn-outline text-danger';
+    if (iconWrap) {
+      iconWrap.className = 'confirm-icon-wrap confirm-icon-reject';
+    }
+  }
+
+  document.getElementById('validation-confirm-record-id').textContent = record.id;
+  modal.classList.remove('hidden');
+  lucide.createIcons();
 }
