@@ -49,8 +49,30 @@ Once Vite starts, it will display a local address:
 
 ## Project Scripts Overview
 
-Available scripts defined in [package.json](file:///c:/Users/Reshmi%20Raj/Desktop/Internship/UI/package.json):
+Available scripts defined in [package.json](package.json):
 
 - **`npm run dev`** &mdash; Starts the local dev server at `http://localhost:5173/` with hot module replacement.
 - **`npm run build`** &mdash; Compiles and builds production assets into a static `dist` bundle folder.
 - **`npm run preview`** &mdash; Serves the built production bundle locally to verify build outputs.
+
+---
+
+## ESG Request Workflow
+
+The platform supports collecting ESG data from external stakeholders:
+
+1. Open **My ESG Data** and click **Request New Data**
+2. Click **Send ESG Request** and fill in recipient details
+3. A unique request ID is generated (e.g. `REQ-001`) with a shareable form link (`/submit-esg/REQ-001`)
+4. A simulated email is sent with greeting, reporting period, deadline, and form link
+5. Track request status in the workflow modal and send **Remind** for pending submissions
+
+### External Submission Form
+
+Recipients open the shared link to complete:
+
+- Environmental, Social, and Governance metrics
+- Optional comments and file attachment
+- **Save Draft** or **Submit ESG Data**
+
+Submitted records appear in **My ESG Data** and **Data Validation** for review.

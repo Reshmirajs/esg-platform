@@ -51,6 +51,7 @@ const DEFAULT_STATE = {
       downloadContent: "Carbon Risk Disclosures 2025\nType: TCFD Carbon\nFormat: PDF\nApproved ESG Records: 97\nGenerated: 2025-12-10"
     }
   ],
+  esgRequests: [],
   records: [] // Will be populated dynamically on first load
 };
 
@@ -269,6 +270,10 @@ function loadAppState() {
     appState.recentActivities = JSON.parse(JSON.stringify(DEFAULT_STATE.recentActivities));
     stateMutated = true;
   }
+  if (!Array.isArray(appState.esgRequests)) {
+    appState.esgRequests = [];
+    stateMutated = true;
+  }
   if (stateMutated) {
     saveAppState();
   }
@@ -304,6 +309,7 @@ let pendingValidationDecision = null;
 
 document.addEventListener("DOMContentLoaded", () => {
   loadAppState();
+  syncExternalRequestsToValidation();
   lucide.createIcons();
   
   // Populate UI bindings
@@ -2225,6 +2231,7 @@ function toggleValidationFiltersMenu() {
 }
 
 function renderValidationworkbench() {
+  syncExternalRequestsToValidation();
   const tbody = document.getElementById('validation-table-body');
   const emptyState = document.getElementById('validation-empty-state');
   if (!tbody) return;
@@ -2488,6 +2495,7 @@ function approveRecord(recordId) {
     updateDashboardKPIs();
     renderApprovedRecordsTable();
     renderValidationworkbench();
+    syncEsgRequestStatus(recordId, 'Approved');
     updateNotificationBadge();
     renderNotificationsList();
   }
@@ -2514,6 +2522,7 @@ function rejectRecord(recordId, reason = '') {
     saveAppState();
     updateDashboardKPIs();
     renderValidationworkbench();
+    syncEsgRequestStatus(recordId, 'Rejected');
     updateNotificationBadge();
     renderNotificationsList();
   }
@@ -3382,4 +3391,369 @@ function openValidationConfirmModal(action, recordId) {
   document.getElementById('validation-confirm-record-id').textContent = record.id;
   modal.classList.remove('hidden');
   lucide.createIcons();
+}
+
+
+/* ================= ESG REQUEST WORKFLOW ================= */
+
+function generateRequestId() {
+  const requests = appState.esgRequests || [];
+  const maxNum = requests.reduce((max, r) => {
+    const n = parseInt(String(r.id).replace('REQ-', ''), 10);
+    return isNaN(n) ? max : Math.max(max, n);
+  }, 0);
+  return 'REQ-' + String(maxNum + 1).padStart(3, '0');
+}
+
+function generateNextRecordId() {
+  const maxNum = appState.records.reduce((max, r) => {
+    const n = parseInt(String(r.id).replace('REC-', ''), 10);
+    return isNaN(n) ? max : Math.max(max, n);
+  }, 0);
+  return 'REC-' + String(maxNum + 1).padStart(3, '0');
+}
+
+function getEsgRequestFormLink(requestId) {
+  const origin = window.location.origin;
+  const path = window.location.pathname.replace(/index\.html$/, '').replace(/\/$/, '');
+  return `${origin}${path}/submit-esg.html?req=${requestId}`;
+}
+
+function getEsgRequestDisplayPath(requestId) {
+  return `/submit-esg/${requestId}`;
+}
+
+function getRequestStatusBadgeClass(status) {
+  const map = {
+    'Request Sent': 'badge-request-sent',
+    'Form Opened': 'badge-form-opened',
+    'Submitted': 'badge-submitted',
+    'Under Validation': 'badge-under-validation',
+    'Approved': 'badge-approved',
+    'Rejected': 'badge-rejected'
+  };
+  return map[status] || 'badge-pending';
+}
+
+function openEsgRequestWorkflowModal() {
+  const modal = document.getElementById('esg-request-workflow-modal');
+  if (!modal) return;
+  renderEsgRequestDashboard();
+  modal.classList.remove('hidden');
+  lucide.createIcons();
+}
+
+function closeEsgRequestWorkflowModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  const modal = document.getElementById('esg-request-workflow-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function openEsgRequestModal() {
+  const modal = document.getElementById('esg-request-modal');
+  if (!modal) return;
+  const form = document.getElementById('esg-request-form');
+  if (form) form.reset();
+  const deadline = document.getElementById('req-deadline');
+  if (deadline) {
+    const d = new Date();
+    d.setDate(d.getDate() + 14);
+    deadline.value = d.toISOString().split('T')[0];
+  }
+  modal.classList.remove('hidden');
+  lucide.createIcons();
+}
+
+function closeEsgRequestModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  const modal = document.getElementById('esg-request-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function closeEsgEmailPreviewModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  const modal = document.getElementById('esg-email-preview-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function sendEsgRequest() {
+  const recipientName = document.getElementById('req-recipient-name').value.trim();
+  const recipientEmail = document.getElementById('req-recipient-email').value.trim();
+  const department = document.getElementById('req-department').value.trim();
+  const period = document.getElementById('req-period').value;
+  const deadline = document.getElementById('req-deadline').value;
+  const message = document.getElementById('req-message').value.trim();
+
+  if (!recipientName || !recipientEmail || !department || !period || !deadline) {
+    showToast('Please fill in all required fields.', 'error');
+    return;
+  }
+
+  const requestId = generateRequestId();
+  const formLink = getEsgRequestFormLink(requestId);
+  const displayPath = getEsgRequestDisplayPath(requestId);
+  const today = new Date().toISOString().split('T')[0];
+
+  const request = {
+    id: requestId,
+    recipientName,
+    recipientEmail,
+    department,
+    period,
+    deadline,
+    message,
+    formLink,
+    displayPath,
+    status: 'Request Sent',
+    recordId: null,
+    sentAt: today,
+    reminderCount: 0,
+    lastReminderAt: null
+  };
+
+  if (!Array.isArray(appState.esgRequests)) appState.esgRequests = [];
+  appState.esgRequests.unshift(request);
+  saveAppState();
+
+  const emailBody = buildEsgRequestEmailBody(recipientName, period, deadline, displayPath, formLink, message);
+  console.log('[ESG Platform] Simulated email sent:', {
+    to: recipientEmail,
+    subject: `ESG Data Collection Request — ${period}`,
+    body: emailBody,
+    formLink
+  });
+
+  showEsgEmailPreview(recipientEmail, period, emailBody, formLink);
+  closeEsgRequestModal();
+  renderEsgRequestDashboard();
+  showToast('ESG request sent successfully.', 'success');
+}
+
+function buildEsgRequestEmailBody(name, period, deadline, displayPath, formLink, message) {
+  const formattedDeadline = new Date(deadline + 'T00:00:00').toLocaleDateString('en-US', {
+    month: 'long', day: 'numeric', year: 'numeric'
+  });
+  let body = `Dear ${name},\n\n`;
+  body += `You have been invited to submit ESG data for the reporting period ${period}.\n\n`;
+  body += `Please complete the submission form by ${formattedDeadline}.\n\n`;
+  body += `Access the form here: ${displayPath}\n`;
+  body += `Direct link: ${formLink}\n`;
+  if (message) body += `\nMessage from the ESG team:\n${message}\n`;
+  body += `\nThank you,\nESG Platform Team`;
+  return body;
+}
+
+function buildEsgReminderEmailBody(name, period, deadline, displayPath, formLink) {
+  const formattedDeadline = new Date(deadline + 'T00:00:00').toLocaleDateString('en-US', {
+    month: 'long', day: 'numeric', year: 'numeric'
+  });
+  let body = `Dear ${name},\n\n`;
+  body += `This is a friendly reminder to submit your ESG data for the reporting period ${period}.\n\n`;
+  body += `The submission deadline is ${formattedDeadline}. Please complete the form at your earliest convenience.\n\n`;
+  body += `Access the form here: ${displayPath}\n`;
+  body += `Direct link: ${formLink}\n\n`;
+  body += `If you have already started, you can return to the form to finish and submit your data.\n\n`;
+  body += `Thank you,\nESG Platform Team`;
+  return body;
+}
+
+function isRequestAwaitingSubmission(status) {
+  return ['Request Sent', 'Form Opened'].includes(status);
+}
+
+function isRequestOverdue(deadline) {
+  if (!deadline) return false;
+  const today = new Date().toISOString().split('T')[0];
+  return deadline < today;
+}
+
+function sendEsgReminder(requestId) {
+  const req = (appState.esgRequests || []).find(r => r.id === requestId);
+  if (!req) return;
+
+  if (!isRequestAwaitingSubmission(req.status)) {
+    showToast('This request has already been submitted.', 'warning');
+    return;
+  }
+
+  const displayPath = req.displayPath || getEsgRequestDisplayPath(req.id);
+  const formLink = req.formLink || getEsgRequestFormLink(req.id);
+  const emailBody = buildEsgReminderEmailBody(req.recipientName, req.period, req.deadline, displayPath, formLink);
+
+  console.log('[ESG Platform] Simulated reminder email sent:', {
+    to: req.recipientEmail,
+    subject: `Reminder: ESG Data Collection Request — ${req.period}`,
+    body: emailBody,
+    formLink
+  });
+
+  req.lastReminderAt = new Date().toISOString().split('T')[0];
+  req.reminderCount = (req.reminderCount || 0) + 1;
+  saveAppState();
+
+  showEsgEmailPreview(req.recipientEmail, req.period, emailBody, formLink, {
+    modalTitle: 'Reminder Sent (Simulated)',
+    subjectPrefix: 'Reminder: '
+  });
+  renderEsgRequestDashboard();
+  showToast('Reminder sent successfully.', 'success');
+}
+
+function showEsgEmailPreview(to, period, bodyText, link, options = {}) {
+  const modal = document.getElementById('esg-email-preview-modal');
+  if (!modal) return;
+
+  const titleEl = document.getElementById('email-preview-title');
+  if (titleEl) titleEl.textContent = options.modalTitle || 'Email Sent (Simulated)';
+
+  const subjectPrefixEl = document.getElementById('email-preview-subject-prefix');
+  if (subjectPrefixEl) subjectPrefixEl.textContent = options.subjectPrefix || '';
+
+  document.getElementById('email-preview-to').textContent = to;
+  document.getElementById('email-preview-period').textContent = period;
+  const htmlBody = bodyText
+    .replace(/\n/g, '<br>')
+    .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+  document.getElementById('email-preview-body').innerHTML = htmlBody;
+  document.getElementById('email-preview-link').value = link;
+  modal.classList.remove('hidden');
+  lucide.createIcons();
+}
+
+function copyEsgRequestLink() {
+  const input = document.getElementById('email-preview-link');
+  if (!input) return;
+  input.select();
+  navigator.clipboard.writeText(input.value).then(() => {
+    showToast('Form link copied to clipboard!', 'success');
+  }).catch(() => {
+    document.execCommand('copy');
+    showToast('Form link copied!', 'success');
+  });
+}
+
+function copyRequestFormLink(requestId) {
+  const req = (appState.esgRequests || []).find(r => r.id === requestId);
+  if (!req) return;
+  const link = req.formLink || getEsgRequestFormLink(requestId);
+  navigator.clipboard.writeText(link).then(() => {
+    showToast('Form link copied to clipboard!', 'success');
+  }).catch(() => {
+    showToast('Form link: ' + link, 'info');
+  });
+}
+
+function renderEsgRequestDashboard() {
+  const requests = appState.esgRequests || [];
+  const tbody = document.getElementById('esg-requests-table-body');
+  const emptyState = document.getElementById('esg-requests-empty-state');
+  if (!tbody) return;
+
+  const totalSent = requests.length;
+  const responses = requests.filter(r =>
+    ['Submitted', 'Under Validation', 'Approved', 'Rejected'].includes(r.status)
+  ).length;
+  const pendingSubmissions = requests.filter(r =>
+    ['Request Sent', 'Form Opened'].includes(r.status)
+  ).length;
+  const approvedRequests = requests.filter(r => r.status === 'Approved').length;
+
+  const setKpi = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  setKpi('req-kpi-total-sent', totalSent);
+  setKpi('req-kpi-responses', responses);
+  setKpi('req-kpi-pending', pendingSubmissions);
+  setKpi('req-kpi-approved', approvedRequests);
+
+  if (requests.length === 0) {
+    tbody.innerHTML = '';
+    if (emptyState) emptyState.classList.remove('hidden');
+    lucide.createIcons();
+    return;
+  }
+
+  if (emptyState) emptyState.classList.add('hidden');
+
+  tbody.innerHTML = requests.map(r => {
+    const badgeClass = getRequestStatusBadgeClass(r.status);
+    const deadlineDisplay = r.deadline
+      ? new Date(r.deadline + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      : '—';
+    const awaitingSubmission = isRequestAwaitingSubmission(r.status);
+    const overdue = awaitingSubmission && isRequestOverdue(r.deadline);
+    const reminderHint = r.lastReminderAt
+      ? `<div style="font-size:0.7rem;color:var(--neutral-400);margin-top:0.15rem;">Last reminded ${r.lastReminderAt}</div>`
+      : '';
+    return `
+      <tr>
+        <td class="font-mono">${r.id}</td>
+        <td>
+          <div>${r.recipientName}</div>
+          <div style="font-size:0.75rem;color:var(--neutral-400);">${r.recipientEmail}</div>
+        </td>
+        <td>${r.department}</td>
+        <td>${r.period}</td>
+        <td>
+          ${deadlineDisplay}
+          ${overdue ? `<div class="esg-deadline-overdue"><i data-lucide="alert-circle"></i> Overdue</div>` : ''}
+        </td>
+        <td>
+          <span class="badge ${badgeClass}">${r.status}</span>
+          ${reminderHint}
+        </td>
+        <td>
+          <div class="esg-icon-actions">
+            ${awaitingSubmission ? `
+            <button class="esg-request-link-btn esg-reminder-btn" onclick="sendEsgReminder('${r.id}')" title="Send reminder to fill form">
+              <i data-lucide="bell"></i> Remind
+            </button>` : ''}
+            <button class="esg-request-link-btn" onclick="copyRequestFormLink('${r.id}')" title="Copy form link">
+              <i data-lucide="link"></i> Link
+            </button>
+            ${r.recordId ? `
+            <button class="esg-icon-btn esg-icon-btn--view" onclick="openEsgViewModal('${r.recordId}')" title="View submitted record">
+              <i data-lucide="eye"></i>
+            </button>` : ''}
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  lucide.createIcons();
+}
+
+function syncEsgRequestStatus(recordId, newStatus) {
+  const record = appState.records.find(r => r.id === recordId);
+  if (!record || !record.requestId) return;
+  const req = (appState.esgRequests || []).find(r => r.id === record.requestId);
+  if (!req) return;
+  if (newStatus === 'Approved') req.status = 'Approved';
+  else if (newStatus === 'Rejected') req.status = 'Rejected';
+  saveAppState();
+  renderEsgRequestDashboard();
+}
+
+function updateEsgRequestStatus(requestId, status, recordId) {
+  const req = (appState.esgRequests || []).find(r => r.id === requestId);
+  if (!req) return;
+  req.status = status;
+  if (recordId) req.recordId = recordId;
+  saveAppState();
+}
+
+function syncExternalRequestsToValidation() {
+  let changed = false;
+  (appState.esgRequests || []).forEach(req => {
+    if (req.status === 'Submitted' && req.recordId) {
+      const rec = appState.records.find(r => r.id === req.recordId);
+      if (rec && rec.status === 'Pending') {
+        req.status = 'Under Validation';
+        changed = true;
+      }
+    }
+  });
+  if (changed) {
+    saveAppState();
+    renderEsgRequestDashboard();
+  }
 }

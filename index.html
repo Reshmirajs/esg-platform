@@ -558,8 +558,6 @@
         <!-- ================= VIEW: MY ESG DATA ================= -->
         <section id="my-esg-data-view" class="view-panel">
 
-
-
           <!-- Main data card -->
           <div class="card esg-data-card">
             <!-- Single-line toolbar header -->
@@ -587,6 +585,9 @@
                 </select>
                 <button class="btn btn-outline btn-sm esg-toolbar-btn" onclick="exportApprovedCSV()">
                   <i data-lucide="download"></i><span>Export</span>
+                </button>
+                <button class="btn btn-outline btn-sm esg-toolbar-btn" onclick="openEsgRequestWorkflowModal()">
+                  <i data-lucide="mail-plus"></i><span>Request New Data</span>
                 </button>
                 <button class="btn btn-primary btn-sm esg-toolbar-btn" onclick="openEsgDataCollectionModal()">
                   <i data-lucide="plus"></i><span>Add Record</span>
@@ -1191,6 +1192,205 @@
       <div class="modal-footer">
         <button class="btn btn-outline" onclick="closeEsgViewModal()"><i data-lucide="x"></i> Close</button>
         <div id="evm-action-buttons" class="action-buttons"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: ESG REQUEST WORKFLOW (Request New Data) ================= -->
+  <div id="esg-request-workflow-modal" class="modal-backdrop hidden" onclick="closeEsgRequestWorkflowModal(event)">
+    <div class="modal-card modal-card-wide esg-request-workflow-modal" style="max-width: 1100px; width: 95vw; max-height: 90vh; display: flex; flex-direction: column;" onclick="event.stopPropagation()">
+      <div class="modal-header" style="flex-shrink: 0;">
+        <div>
+          <h3 class="modal-title" style="display:flex;align-items:center;gap:0.5rem;font-family:'Outfit',sans-serif;font-weight:600;">
+            <i data-lucide="mail-plus" style="color:var(--primary);"></i> Request New Data
+          </h3>
+          <p style="font-size:0.8rem;color:var(--neutral-500);margin-top:0.25rem;">Send ESG data collection requests and track external stakeholder responses</p>
+        </div>
+        <button class="close-btn" onclick="closeEsgRequestWorkflowModal()" aria-label="Close modal"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body esg-request-workflow-body" style="overflow-y: auto; flex: 1; padding: 1.25rem 1.5rem;">
+        <!-- ESG Request Workflow KPIs -->
+        <div class="kpi-grid esg-request-kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Total Requests Sent</span>
+              <div class="kpi-icon-wrapper"><i data-lucide="send"></i></div>
+            </div>
+            <div class="kpi-value" id="req-kpi-total-sent">0</div>
+            <div class="kpi-trend trend-up">
+              <i data-lucide="mail"></i>
+              <span>External data requests</span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Responses Received</span>
+              <div class="kpi-icon-wrapper text-success"><i data-lucide="inbox"></i></div>
+            </div>
+            <div class="kpi-value" id="req-kpi-responses">0</div>
+            <div class="kpi-trend trend-up">
+              <i data-lucide="arrow-up-right"></i>
+              <span>Forms submitted</span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Pending Submissions</span>
+              <div class="kpi-icon-wrapper text-warning"><i data-lucide="clock"></i></div>
+            </div>
+            <div class="kpi-value" id="req-kpi-pending">0</div>
+            <div class="kpi-trend trend-down">
+              <i data-lucide="hourglass"></i>
+              <span>Awaiting response</span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Approved Requests</span>
+              <div class="kpi-icon-wrapper text-success"><i data-lucide="shield-check"></i></div>
+            </div>
+            <div class="kpi-value" id="req-kpi-approved">0</div>
+            <div class="kpi-trend trend-up">
+              <i data-lucide="check-circle-2"></i>
+              <span>Validated &amp; approved</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Request Tracking Dashboard -->
+        <div class="card esg-request-tracking-card">
+          <div class="esg-toolbar">
+            <div class="esg-toolbar-left">
+              <h3 class="esg-toolbar-title">ESG Request Tracking</h3>
+              <span class="esg-toolbar-divider"></span>
+              <p class="esg-toolbar-subtitle">Monitor external stakeholder data collection requests</p>
+            </div>
+            <div class="esg-toolbar-right">
+              <button class="btn btn-primary btn-sm esg-toolbar-btn" onclick="openEsgRequestModal()">
+                <i data-lucide="mail-plus"></i><span>Send ESG Request</span>
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Request ID</th>
+                    <th>Recipient</th>
+                    <th>Department</th>
+                    <th>Period</th>
+                    <th>Deadline</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="esg-requests-table-body">
+                  <!-- Loaded dynamically -->
+                </tbody>
+              </table>
+            </div>
+            <div id="esg-requests-empty-state" class="empty-state hidden">
+              <i data-lucide="mail" class="empty-icon"></i>
+              <p style="font-weight:600;color:var(--neutral-600);margin-bottom:0.3rem;">No requests sent yet</p>
+              <p style="font-size:0.8rem;color:var(--neutral-400);">Click "Send ESG Request" to collect data from external stakeholders.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: ESG REQUEST CREATION ================= -->
+  <div id="esg-request-modal" class="modal-backdrop hidden" onclick="closeEsgRequestModal(event)">
+    <div class="modal-card modal-card-wide" style="max-width: 640px;" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title" style="display:flex;align-items:center;gap:0.5rem;font-family:'Outfit',sans-serif;font-weight:600;">
+            <i data-lucide="mail-plus" style="color:var(--primary);"></i> Send ESG Data Request
+          </h3>
+          <p style="font-size:0.8rem;color:var(--neutral-500);margin-top:0.25rem;">Collect ESG data from external stakeholders via email or shareable form link</p>
+        </div>
+        <button class="close-btn" onclick="closeEsgRequestModal()" aria-label="Close modal"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <form id="esg-request-form" onsubmit="event.preventDefault(); sendEsgRequest();">
+          <div class="form-row">
+            <div class="form-group half-width">
+              <label for="req-recipient-name">Recipient Name <span class="text-danger">*</span></label>
+              <input type="text" id="req-recipient-name" placeholder="e.g. John Smith" required>
+            </div>
+            <div class="form-group half-width">
+              <label for="req-recipient-email">Recipient Email <span class="text-danger">*</span></label>
+              <input type="email" id="req-recipient-email" placeholder="e.g. john@vendor.com" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group half-width">
+              <label for="req-department">Department / Organization <span class="text-danger">*</span></label>
+              <input type="text" id="req-department" placeholder="e.g. Operations" required>
+            </div>
+            <div class="form-group half-width">
+              <label for="req-period">Reporting Period <span class="text-danger">*</span></label>
+              <select id="req-period" required>
+                <option value="" disabled selected>Select Period</option>
+                <option value="Q1 2026">Q1 2026</option>
+                <option value="Q2 2026">Q2 2026</option>
+                <option value="Q3 2026">Q3 2026</option>
+                <option value="Q4 2026">Q4 2026</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="req-deadline">Submission Deadline <span class="text-danger">*</span></label>
+            <input type="date" id="req-deadline" required>
+          </div>
+          <div class="form-group">
+            <label for="req-message">Optional Message</label>
+            <textarea id="req-message" placeholder="Add a personal message for the recipient..." rows="3"></textarea>
+          </div>
+          <div class="form-actions-bar mt-4" style="display:flex;justify-content:flex-end;gap:0.75rem;border-top:1px solid var(--border-color);padding-top:1.25rem;">
+            <button type="button" class="btn btn-outline" onclick="closeEsgRequestModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary"><i data-lucide="send"></i> Send Request</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: ESG REQUEST EMAIL PREVIEW ================= -->
+  <div id="esg-email-preview-modal" class="modal-backdrop hidden" onclick="closeEsgEmailPreviewModal(event)">
+    <div class="modal-card" style="max-width: 560px;" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div style="display:flex;align-items:center;gap:0.6rem;">
+          <i data-lucide="mail-check" style="color:var(--primary);width:22px;height:22px;"></i>
+          <h3 id="email-preview-title">Email Sent (Simulated)</h3>
+        </div>
+        <button class="close-btn" onclick="closeEsgEmailPreviewModal()" aria-label="Close"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="esg-email-preview-card">
+          <div class="esg-email-preview-header">
+            <span class="esg-email-preview-label">To:</span>
+            <span id="email-preview-to"></span>
+          </div>
+          <div class="esg-email-preview-header">
+            <span class="esg-email-preview-label">Subject:</span>
+            <span><span id="email-preview-subject-prefix"></span>ESG Data Collection Request — <span id="email-preview-period"></span></span>
+          </div>
+          <hr class="modal-divider">
+          <div id="email-preview-body" class="esg-email-preview-body"></div>
+        </div>
+        <div class="form-group mt-3">
+          <label>Shareable Form Link</label>
+          <div class="share-link-row">
+            <input type="text" id="email-preview-link" class="share-link-input" readonly>
+            <button class="btn btn-outline btn-sm" onclick="copyEsgRequestLink()"><i data-lucide="copy"></i> Copy</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="closeEsgEmailPreviewModal()">Done</button>
       </div>
     </div>
   </div>

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESG Data Submission — ESG Platform</title>
+  <meta name="description" content="Submit ESG environmental, social, and governance data for your organization.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body {
+      background: var(--bg-body);
+      min-height: 100vh;
+    }
+    .public-form-page {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem 1.25rem 3rem;
+    }
+    .public-form-header {
+      text-align: center;
+      margin-bottom: 2rem;
+      animation: fadeSlideUp 0.5s ease;
+    }
+    .public-brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 1rem;
+      color: var(--primary);
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+    .public-form-header h1 {
+      font-family: var(--font-heading);
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--neutral-800);
+      margin: 0 0 0.5rem;
+      letter-spacing: -0.02em;
+    }
+    .public-form-header p {
+      color: var(--neutral-500);
+      font-size: 0.95rem;
+      margin: 0;
+    }
+    .public-request-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      justify-content: center;
+      margin-top: 1.25rem;
+    }
+    .public-meta-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.35rem 0.85rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: var(--primary-subtle);
+      color: var(--primary);
+      border: 1px solid rgba(92, 63, 230, 0.2);
+    }
+    .public-form-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(92, 63, 230, 0.08);
+      overflow: hidden;
+      animation: fadeSlideUp 0.5s ease 0.1s both;
+    }
+    .public-form-card .card-body {
+      padding: 1.75rem;
+    }
+    .public-success-state {
+      text-align: center;
+      padding: 3rem 2rem;
+    }
+    .public-success-icon {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: var(--color-success-bg);
+      color: var(--color-success);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.25rem;
+    }
+    .public-success-icon svg { width: 36px; height: 36px; }
+    .public-error-state {
+      text-align: center;
+      padding: 3rem 2rem;
+    }
+    .file-upload-zone {
+      border: 2px dashed var(--border-color);
+      border-radius: 12px;
+      padding: 1.25rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: var(--neutral-50);
+    }
+    .file-upload-zone:hover {
+      border-color: var(--primary-light);
+      background: var(--primary-subtle);
+    }
+    .file-upload-zone.has-file {
+      border-color: var(--color-success);
+      background: var(--color-success-bg);
+    }
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="public-form-page">
+    <header class="public-form-header">
+      <div class="public-brand">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M2 22C2 22 6 18 12 18C18 18 22 22 22 22M12 2C12 2 4 6 4 14C4 18.5 7.5 21 12 21C16.5 21 20 18.5 20 14C20 6 12 2 12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12 2V21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        ESG Platform
+      </div>
+      <h1 id="page-heading">ESG Data Submission Form</h1>
+      <p id="page-subheading">Please complete all required fields for your organization</p>
+      <div id="request-meta-chips" class="public-request-meta hidden"></div>
+    </header>
+
+    <div id="form-error-state" class="card public-form-card hidden">
+      <div class="public-error-state">
+        <i data-lucide="alert-circle" style="width:48px;height:48px;color:var(--color-danger);margin-bottom:1rem;"></i>
+        <h2 style="font-family:var(--font-heading);margin-bottom:0.5rem;">Request Not Found</h2>
+        <p style="color:var(--neutral-500);">This submission link is invalid or has expired. Please contact your ESG analyst for a new link.</p>
+      </div>
+    </div>
+
+    <div id="form-success-state" class="card public-form-card hidden">
+      <div class="public-success-state">
+        <div class="public-success-icon"><i data-lucide="check-circle-2"></i></div>
+        <h2 style="font-family:var(--font-heading);margin-bottom:0.5rem;">Submission Received</h2>
+        <p style="color:var(--neutral-500);margin-bottom:0.5rem;">Your ESG data has been submitted successfully.</p>
+        <p style="font-size:0.875rem;color:var(--neutral-400);">Record ID: <strong id="success-record-id" class="font-mono"></strong></p>
+        <p style="font-size:0.8rem;color:var(--neutral-400);margin-top:1rem;">Status: Pending Validation — your data will be reviewed by the ESG team.</p>
+      </div>
+    </div>
+
+    <div id="submission-form-container" class="card public-form-card hidden">
+      <div class="card-body">
+        <form id="external-esg-form" onsubmit="event.preventDefault(); submitExternalEsgData();">
+          <!-- Environmental -->
+          <div class="form-section-card">
+            <div class="section-title-bar">
+              <div class="icon-circle bg-environmental"><i data-lucide="leaf"></i></div>
+              <h3>Environmental Metrics</h3>
+            </div>
+            <div class="section-form-grid">
+              <div class="form-group">
+                <label for="ext-carbon">Carbon Emissions (tons CO₂) <span class="text-danger">*</span></label>
+                <div class="input-suffix-wrapper">
+                  <input type="number" step="0.01" min="0" id="ext-carbon" placeholder="Enter value" required>
+                  <span class="suffix-label">tCO<sub>2</sub></span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="ext-energy">Energy Usage (kWh) <span class="text-danger">*</span></label>
+                <div class="input-suffix-wrapper">
+                  <input type="number" step="1" min="0" id="ext-energy" placeholder="Enter value" required>
+                  <span class="suffix-label">kWh</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="ext-water">Water Usage (m³) <span class="text-danger">*</span></label>
+                <div class="input-suffix-wrapper">
+                  <input type="number" step="0.1" min="0" id="ext-water" placeholder="Enter value" required>
+                  <span class="suffix-label">m³</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Social -->
+          <div class="form-section-card" style="margin-top:1rem;">
+            <div class="section-title-bar">
+              <div class="icon-circle bg-social"><i data-lucide="users"></i></div>
+              <h3>Social Metrics</h3>
+            </div>
+            <div class="section-form-grid">
+              <div class="form-group">
+                <label for="ext-employees">Employee Count <span class="text-danger">*</span></label>
+                <div class="input-suffix-wrapper">
+                  <input type="number" step="1" min="1" id="ext-employees" placeholder="Enter value" required>
+                  <span class="suffix-label">Count</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="ext-training">Training Hours <span class="text-danger">*</span></label>
+                <div class="input-suffix-wrapper">
+                  <input type="number" step="0.5" min="0" id="ext-training" placeholder="Enter value" required>
+                  <span class="suffix-label">Hours</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="ext-incidents">Safety Incidents <span class="text-danger">*</span></label>
+                <div class="input-suffix-wrapper">
+                  <input type="number" step="1" min="0" id="ext-incidents" placeholder="Enter value" required>
+                  <span class="suffix-label">Count</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Governance -->
+          <div class="form-section-card" style="margin-top:1rem;">
+            <div class="section-title-bar">
+              <div class="icon-circle bg-governance"><i data-lucide="landmark"></i></div>
+              <h3>Governance Metrics</h3>
+            </div>
+            <div class="section-form-grid">
+              <div class="form-group">
+                <label for="ext-meetings">Board Meetings <span class="text-danger">*</span></label>
+                <div class="input-suffix-wrapper">
+                  <input type="number" step="1" min="0" id="ext-meetings" placeholder="Enter value" required>
+                  <span class="suffix-label">Count</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="ext-compliance">Compliance Score (%) <span class="text-danger">*</span></label>
+                <div class="input-suffix-wrapper">
+                  <input type="number" step="0.01" min="0" max="100" id="ext-compliance" placeholder="Enter value" required>
+                  <span class="suffix-label">%</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="ext-audits">Audit Count <span class="text-danger">*</span></label>
+                <div class="input-suffix-wrapper">
+                  <input type="number" step="1" min="0" id="ext-audits" placeholder="Enter value" required>
+                  <span class="suffix-label">Count</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Comments & Attachment -->
+          <div class="form-group mt-4">
+            <label for="ext-comments">Comments</label>
+            <textarea id="ext-comments" placeholder="Any additional notes or context..."></textarea>
+          </div>
+
+          <div class="form-group mt-3">
+            <label>Attachment Upload (Optional)</label>
+            <div class="file-upload-zone" id="file-upload-zone" onclick="document.getElementById('ext-attachment').click()">
+              <i data-lucide="paperclip" style="width:24px;height:24px;color:var(--neutral-400);margin-bottom:0.5rem;"></i>
+              <p id="file-upload-label" style="font-size:0.875rem;color:var(--neutral-500);margin:0;">Click to upload supporting documents</p>
+              <input type="file" id="ext-attachment" class="hidden" accept=".pdf,.xlsx,.xls,.csv,.doc,.docx,.png,.jpg" onchange="handleAttachmentSelected(event)">
+            </div>
+          </div>
+
+          <div class="form-actions-bar mt-4" style="display:flex;justify-content:flex-end;gap:0.75rem;border-top:1px solid var(--border-color);padding-top:1.25rem;">
+            <button type="button" class="btn btn-outline" onclick="saveExternalDraft()"><i data-lucide="save"></i> Save Draft</button>
+            <button type="submit" class="btn btn-primary"><i data-lucide="send"></i> Submit ESG Data</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="submit-esg.js"></script>
+</body>
+</html>
