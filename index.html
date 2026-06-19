@@ -138,12 +138,7 @@
               <span>Reports</span>
             </a>
           </li>
-          <li>
-            <a href="#" id="nav-settings" class="nav-item" onclick="switchTab('settings')">
-              <i data-lucide="settings"></i>
-              <span>Settings</span>
-            </a>
-          </li>
+
         </ul>
       </nav>
       
@@ -168,9 +163,10 @@
         </div>
         
         <div class="header-right">
-          <!-- Accessibility Mode Toggle -->
-          <button class="accessibility-btn" onclick="toggleColorblindModeBtn()" aria-label="Toggle Colorblind Mode" title="Toggle Colorblind Mode" style="margin-right: 0.75rem;">
-            <i data-lucide="eye"></i>
+          <!-- Logout Button -->
+          <button class="btn-logout-header" onclick="handleLogout()" aria-label="Logout" title="Logout">
+            <i data-lucide="log-out"></i>
+            <span>Logout</span>
           </button>
           
           <!-- Notification Bell -->
@@ -561,20 +557,26 @@
         </section>
         <!-- ================= VIEW: MY ESG DATA ================= -->
         <section id="my-esg-data-view" class="view-panel">
-          <div class="card">
-            <div class="card-header flex-column-mobile">
-              <div>
-                <h3 class="card-title">My ESG Records</h3>
-                <p style="font-size:0.82rem;color:var(--neutral-500);margin-top:0.2rem;">All ESG data submitted by your organization</p>
+
+
+
+          <!-- Main data card -->
+          <div class="card esg-data-card">
+            <!-- Single-line toolbar header -->
+            <div class="esg-toolbar">
+              <div class="esg-toolbar-left">
+                <h3 class="esg-toolbar-title">My Submitted Records</h3>
+                <span class="esg-toolbar-divider"></span>
+                <p class="esg-toolbar-subtitle">Showing pending, errors &amp; approved</p>
               </div>
-              <div class="card-actions flex-wrap-gap">
-                <select id="esg-filter-status" class="select-sm" onchange="filterApprovedTable()">
+              <div class="esg-toolbar-right">
+                <select id="esg-filter-status" class="esg-filter-select" onchange="filterApprovedTable()">
                   <option value="all">All Statuses</option>
-                  <option value="Approved">Approved</option>
                   <option value="Pending">Pending</option>
-                  <option value="Rejected">Rejected</option>
+                  <option value="errors">Pending (Errors)</option>
+                  <option value="Approved">Approved</option>
                 </select>
-                <select id="esg-filter-dept" class="select-sm" onchange="filterApprovedTable()">
+                <select id="esg-filter-dept" class="esg-filter-select" onchange="filterApprovedTable()">
                   <option value="all">All Departments</option>
                   <option value="Operations">Operations</option>
                   <option value="HR">HR</option>
@@ -583,10 +585,16 @@
                   <option value="Procurement">Procurement</option>
                   <option value="Facilities">Facilities</option>
                 </select>
-                <button class="btn btn-outline btn-sm" onclick="exportApprovedCSV()"><i data-lucide="download"></i> Export CSV</button>
-                <button class="btn btn-primary btn-sm" onclick="openEsgDataCollectionModal()"><i data-lucide="plus"></i> Collect ESG Data</button>
+                <button class="btn btn-outline btn-sm esg-toolbar-btn" onclick="exportApprovedCSV()">
+                  <i data-lucide="download"></i><span>Export</span>
+                </button>
+                <button class="btn btn-primary btn-sm esg-toolbar-btn" onclick="openEsgDataCollectionModal()">
+                  <i data-lucide="plus"></i><span>Add Record</span>
+                </button>
               </div>
             </div>
+
+            <!-- Table -->
             <div class="card-body">
               <div class="table-responsive">
                 <table class="table">
@@ -595,10 +603,6 @@
                       <th>Record ID</th>
                       <th>Department</th>
                       <th>Period</th>
-                      <th>Carbon (tCO2e)</th>
-                      <th>Energy (kWh)</th>
-                      <th>Water (m3)</th>
-                      <th>Employees</th>
                       <th>Date</th>
                       <th>Status</th>
                       <th>Actions</th>
@@ -610,8 +614,9 @@
                 </table>
               </div>
               <div id="approved-empty-state" class="empty-state hidden">
-                <i data-lucide="alert-circle" class="empty-icon"></i>
-                <p>No ESG records found matching selected filters.</p>
+                <i data-lucide="inbox" class="empty-icon"></i>
+                <p style="font-weight:600;color:var(--neutral-600);margin-bottom:0.3rem;">No records found</p>
+                <p style="font-size:0.8rem;color:var(--neutral-400);">No records match the selected filters.</p>
               </div>
               <!-- Pagination Bar -->
               <div id="approved-pagination" class="pagination-bar hidden">
@@ -809,47 +814,17 @@
         <section id="reports-view" class="view-panel">
           <div class="reports-header-bar">
             <div>
-              <h3 class="card-title">Generated Report Archives</h3>
-              <p class="reports-toolbar-subtitle">Previously generated reports are listed first.</p>
+              <h3 class="card-title">Report Archives</h3>
+              <p class="reports-toolbar-subtitle">All generated ESG compliance reports — click View to preview or Download to export.</p>
             </div>
-            <button id="toggle-report-generator-btn" class="btn btn-primary btn-sm" onclick="openReportGeneratorModal()"><i data-lucide="plus"></i> Generate New Report</button>
+            <button id="toggle-report-generator-btn" class="btn btn-primary" onclick="openReportGeneratorModal()">
+              <i data-lucide="plus"></i> Generate New Report
+            </button>
           </div>
 
-          <div class="card mt-4">
-            <div class="card-body">
-              <div class="table-responsive">
-                <table class="table">
-                  <thead>
-                    <tr>
-                      <th>Report Name</th>
-                      <th>Date Generated</th>
-                      <th>Type</th>
-                      <th>Format</th>
-                      <th>Size</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody id="report-archives-body">
-                    <tr>
-                      <td>ESG_Summary_Q4_2025</td>
-                      <td>2026-01-15</td>
-                      <td>Standard Comprehensive</td>
-                      <td><span class="badge badge-pdf">PDF</span></td>
-                      <td>2.4 MB</td>
-                      <td><button class="btn btn-outline btn-sm" onclick="alert('Downloading report archive...')"><i data-lucide="download"></i> Download</button></td>
-                    </tr>
-                    <tr>
-                      <td>Carbon_Risk_Disclosures_2025</td>
-                      <td>2025-12-10</td>
-                      <td>TCFD Carbon</td>
-                      <td><span class="badge badge-pdf">PDF</span></td>
-                      <td>1.8 MB</td>
-                      <td><button class="btn btn-outline btn-sm" onclick="alert('Downloading report archive...')"><i data-lucide="download"></i> Download</button></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
+          <!-- Report Cards Grid -->
+          <div id="report-archives-body" class="report-cards-grid mt-4">
+            <!-- Populated by JS -->
           </div>
         </section>
 
@@ -908,13 +883,7 @@
                       Enable Platform Dark Mode
                     </label>
                   </div>
-                  <div class="form-group mt-3">
-                    <label class="checkbox-container">
-                      <input type="checkbox" id="set-colorblind-mode" onchange="toggleColorblindMode(this.checked)">
-                      <span class="checkmark"></span>
-                      Enable Colorblind-Friendly Mode
-                    </label>
-                  </div>
+
                 </div>
                 
                 <button class="btn btn-primary mt-4" onclick="saveSettings()"><i data-lucide="check"></i> Save Settings</button>
@@ -1544,7 +1513,7 @@
             <div class="form-actions-bar mt-4" style="display:flex; justify-content: flex-end; gap:0.75rem; border-top: 1px solid var(--border-color); padding-top: 1.25rem;">
               <button type="button" class="btn btn-outline" onclick="saveFormDraft()"><i data-lucide="save"></i> Save Draft</button>
               <button type="button" class="btn btn-outline text-danger" onclick="clearManualForm()"><i data-lucide="rotate-ccw"></i> Clear</button>
-              <button type="button" class="btn btn-outline" id="btn-manual-validate" onclick="validateManualFormInputs()"><i data-lucide="shield-check"></i> Validate Data</button>
+
               <button type="submit" class="btn btn-primary"><i data-lucide="send"></i> Submit Data</button>
             </div>
           </form>
@@ -1555,94 +1524,146 @@
 
   <!-- ================= MODAL: REPORT GENERATOR ================= -->
   <div id="report-generator-modal" class="modal-backdrop hidden" onclick="closeReportGeneratorModal(event)">
-    <div class="modal-card" style="max-width: 680px; max-height: 90vh; display: flex; flex-direction: column;" onclick="event.stopPropagation()">
-      <div class="modal-header" style="flex-shrink: 0;">
+    <div class="rgen-modal" onclick="event.stopPropagation()">
+
+      <!-- Modal Header with gradient accent -->
+      <div class="rgen-header">
+        <div class="rgen-header-icon"><i data-lucide="file-plus-2"></i></div>
         <div>
-          <h3 class="modal-title" style="display: flex; align-items: center; gap: 0.5rem; font-family: 'Outfit', sans-serif; font-weight: 600;">
-            <i data-lucide="file-plus" style="color: var(--primary);"></i> Generate ESG Compliance Report
-          </h3>
-          <p style="font-size:0.8rem;color:var(--neutral-500);margin-top:0.25rem;">Configure and generate ESG reports based on validated corporate data</p>
+          <h3 class="rgen-title">Generate ESG Report</h3>
+          <p class="rgen-subtitle">Configure parameters to compile a formatted compliance report</p>
         </div>
-        <button class="close-btn" onclick="closeReportGeneratorModal()" aria-label="Close modal"><i data-lucide="x"></i></button>
+        <button class="rgen-close-btn" onclick="closeReportGeneratorModal()" aria-label="Close"><i data-lucide="x"></i></button>
       </div>
-      <div class="modal-body" style="overflow-y: auto; flex: 1; padding: 1.5rem;">
-        <p style="font-size: 0.9rem; color: var(--neutral-600); margin-bottom: 1rem;">Configure the parameters below to generate a formatted ESG compliance report.</p>
-        
+
+      <!-- Modal Body -->
+      <div class="rgen-body">
         <form id="report-generator-form" onsubmit="event.preventDefault(); triggerGenerateReport();">
 
-          <div class="form-row">
-            <div class="form-group half-width">
-              <label for="rep-type">Report Type</label>
-              <select id="rep-type" required>
-                <option value="Standard">Standard ESG Comprehensive Report</option>
-                <option value="GRI">GRI Standard Alignment</option>
-                <option value="TCFD">TCFD Carbon Risk Disclosure</option>
-                <option value="Environmental">Environmental Deep-Dive Report</option>
-              </select>
-            </div>
-            <div class="form-group half-width">
-              <label for="rep-format">Output Format</label>
-              <select id="rep-format" required>
-                <option value="PDF">PDF Document (.pdf)</option>
-                <option value="Excel">Excel Spreadsheet (.xlsx)</option>
-                <option value="CSV">Comma Separated Values (.csv)</option>
-              </select>
+          <!-- Report Name -->
+          <div class="rgen-section">
+            <label class="rgen-label" for="rep-name"><i data-lucide="tag"></i> Report Name</label>
+            <input type="text" id="rep-name" class="rgen-input" placeholder="e.g. Q1 2026 ESG Compliance Report" maxlength="80" />
+            <span class="rgen-hint">Leave blank to auto-generate from type and period</span>
+          </div>
+
+          <!-- Report Type Cards -->
+          <div class="rgen-section">
+            <label class="rgen-label"><i data-lucide="layout-template"></i> Report Type</label>
+            <div class="rgen-type-grid">
+              <label class="rgen-type-card">
+                <input type="radio" name="rep-type-radio" value="Standard" checked>
+                <div class="rgen-type-icon" style="background:var(--primary-subtle);color:var(--primary)"><i data-lucide="file-text"></i></div>
+                <span class="rgen-type-name">Standard ESG</span>
+                <span class="rgen-type-desc">Comprehensive</span>
+              </label>
+              <label class="rgen-type-card">
+                <input type="radio" name="rep-type-radio" value="GRI">
+                <div class="rgen-type-icon" style="background:#f0fdf4;color:#16a34a"><i data-lucide="globe-2"></i></div>
+                <span class="rgen-type-name">GRI Standards</span>
+                <span class="rgen-type-desc">Alignment</span>
+              </label>
+              <label class="rgen-type-card">
+                <input type="radio" name="rep-type-radio" value="TCFD">
+                <div class="rgen-type-icon" style="background:#fff7ed;color:#ea580c"><i data-lucide="thermometer"></i></div>
+                <span class="rgen-type-name">TCFD Carbon</span>
+                <span class="rgen-type-desc">Risk Disclosure</span>
+              </label>
+              <label class="rgen-type-card">
+                <input type="radio" name="rep-type-radio" value="Environmental">
+                <div class="rgen-type-icon" style="background:#f0fdfa;color:#0891b2"><i data-lucide="leaf"></i></div>
+                <span class="rgen-type-name">Environmental</span>
+                <span class="rgen-type-desc">Deep-Dive</span>
+              </label>
             </div>
           </div>
-          
-          <div class="form-row mt-3">
-            <div class="form-group half-width">
-              <label for="rep-time-scope">Period Scope</label>
-              <select id="rep-time-scope" required onchange="handleReportScopeChange()">
+
+          <!-- Period + Format row -->
+          <div class="rgen-row">
+            <div class="rgen-section" style="flex:1">
+              <label class="rgen-label" for="rep-time-scope"><i data-lucide="calendar"></i> Period Scope</label>
+              <select id="rep-time-scope" class="rgen-select" required onchange="handleReportScopeChange()">
                 <option value="Monthly">Monthly</option>
                 <option value="Quarterly" selected>Quarterly</option>
                 <option value="Annual">Annual (Financial Year)</option>
               </select>
             </div>
-            <div class="form-group half-width">
-              <label for="rep-time-period">Reporting Period</label>
-              <select id="rep-time-period" required>
+            <div class="rgen-section" style="flex:1">
+              <label class="rgen-label" for="rep-time-period"><i data-lucide="clock"></i> Reporting Period</label>
+              <select id="rep-time-period" class="rgen-select" required>
                 <!-- Populated dynamically via JS -->
               </select>
             </div>
+            <div class="rgen-section" style="flex:1">
+              <label class="rgen-label" for="rep-format"><i data-lucide="package"></i> Output Format</label>
+              <select id="rep-format" class="rgen-select" required>
+                <option value="PDF">PDF Document</option>
+                <option value="Excel">Excel (.xlsx)</option>
+                <option value="CSV">CSV Data</option>
+              </select>
+            </div>
           </div>
-          
-          <div class="form-group mt-3">
-            <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Select Metric Focus Areas</label>
-            <div class="checkbox-group-grid" style="display: grid; grid-template-columns: 1fr; gap: 0.5rem;">
-              <label class="checkbox-container">
+
+          <!-- Focus Areas -->
+          <div class="rgen-section">
+            <label class="rgen-label"><i data-lucide="target"></i> Metric Focus Areas</label>
+            <div class="rgen-focus-grid">
+              <label class="rgen-focus-pill">
                 <input type="checkbox" name="focus-area" value="carbon" checked>
-                <span class="checkmark"></span>
-                Carbon Emissions (tCO2e)
+                <i data-lucide="wind"></i> Carbon Emissions
               </label>
-              <label class="checkbox-container">
+              <label class="rgen-focus-pill">
                 <input type="checkbox" name="focus-area" value="energy" checked>
-                <span class="checkmark"></span>
-                Energy Consumption (kWh)
+                <i data-lucide="zap"></i> Energy (kWh)
               </label>
-              <label class="checkbox-container">
+              <label class="rgen-focus-pill">
                 <input type="checkbox" name="focus-area" value="water" checked>
-                <span class="checkmark"></span>
-                Water Usage (m3)
+                <i data-lucide="droplets"></i> Water Usage
               </label>
-              <label class="checkbox-container">
+              <label class="rgen-focus-pill">
                 <input type="checkbox" name="focus-area" value="social" checked>
-                <span class="checkmark"></span>
-                Social metrics (Employees, Training, Safety)
+                <i data-lucide="users"></i> Social Metrics
               </label>
-              <label class="checkbox-container">
+              <label class="rgen-focus-pill">
                 <input type="checkbox" name="focus-area" value="governance" checked>
-                <span class="checkmark"></span>
-                Governance policies (Board diversity, Audits)
+                <i data-lucide="shield"></i> Governance
               </label>
             </div>
           </div>
-          
-          <div class="form-actions-bar mt-4" style="display:flex; justify-content: flex-end; gap:0.75rem; border-top: 1px solid var(--border-color); padding-top: 1.25rem;">
+
+          <!-- Actions -->
+          <div class="rgen-footer">
             <button type="button" class="btn btn-outline" onclick="closeReportGeneratorModal()">Cancel</button>
-            <button type="submit" class="btn btn-primary"><i data-lucide="printer"></i> Compile &amp; Generate Report</button>
+            <button type="submit" class="btn btn-primary rgen-submit-btn">
+              <i data-lucide="printer"></i> Compile &amp; Generate
+            </button>
           </div>
         </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: REPORT VIEWER ================= -->
+  <div id="report-viewer-modal" class="modal-backdrop hidden" onclick="closeReportViewerModal(event)">
+    <div class="rview-modal" onclick="event.stopPropagation()">
+      <div class="rview-header">
+        <div class="rview-header-left">
+          <div class="rview-icon"><i data-lucide="file-text"></i></div>
+          <div>
+            <h3 id="rview-title" class="rview-title"></h3>
+            <p id="rview-meta" class="rview-meta"></p>
+          </div>
+        </div>
+        <div class="rview-header-actions">
+          <button class="btn btn-outline btn-sm" id="rview-download-btn" onclick="downloadFromViewer()"><i data-lucide="download"></i> Download</button>
+          <button class="rview-close" onclick="closeReportViewerModal()"><i data-lucide="x"></i></button>
+        </div>
+      </div>
+      <div class="rview-body">
+        <!-- Stats bar -->
+        <div id="rview-stats" class="rview-stats-bar"></div>
+        <!-- Report preview content -->
+        <div id="rview-content" class="rview-content"></div>
       </div>
     </div>
   </div>

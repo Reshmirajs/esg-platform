@@ -403,6 +403,9 @@ function switchTab(tabId, subOption = null) {
     currentRecordPaginationPage = 1;
     renderValidationworkbench();
   } else if (tabId === 'my-esg-data') {
+    // Reset to default 'all' view (Pending + Errors + Approved)
+    const statusFilterEl = document.getElementById('esg-filter-status');
+    if (statusFilterEl) statusFilterEl.value = 'all';
     if (subOption) {
       approvedFilterDept = "all";
       const filterSelect = document.getElementById('esg-filter-dept');
@@ -1928,12 +1931,32 @@ function renderApprovedRecordsTable() {
   const paginationBar = document.getElementById('approved-pagination');
   if (!tbody) return;
 
+  // Update all 3 KPI chips in the banner
+  const pendingClean = appState.records.filter(r => r.status === 'Pending' && (!r.issues || r.issues.length === 0)).length;
+  const pendingErrors = appState.records.filter(r => r.status === 'Pending' && r.issues && r.issues.length > 0).length;
+  const approvedCount = appState.records.filter(r => r.status === 'Approved').length;
+  const pendingEl = document.getElementById('my-esg-pending-count');
+  if (pendingEl) pendingEl.textContent = pendingClean;
+  const errorsEl = document.getElementById('my-esg-errors-count');
+  if (errorsEl) errorsEl.textContent = pendingErrors;
+  const approvedEl = document.getElementById('my-esg-approved-count');
+  if (approvedEl) approvedEl.textContent = approvedCount;
+
   const deptFilter = document.getElementById('esg-filter-dept') ? document.getElementById('esg-filter-dept').value : 'all';
   const statusFilter = document.getElementById('esg-filter-status') ? document.getElementById('esg-filter-status').value : 'all';
 
   let records = [...appState.records];
+  // Apply status filter — default 'all' excludes Rejected
+  if (statusFilter === 'all') {
+    records = records.filter(r => r.status !== 'Rejected');
+  } else if (statusFilter === 'Pending') {
+    records = records.filter(r => r.status === 'Pending' && (!r.issues || r.issues.length === 0));
+  } else if (statusFilter === 'errors') {
+    records = records.filter(r => r.status === 'Pending' && r.issues && r.issues.length > 0);
+  } else if (statusFilter === 'Approved') {
+    records = records.filter(r => r.status === 'Approved');
+  }
   if (deptFilter !== 'all') records = records.filter(r => r.department === deptFilter);
-  if (statusFilter !== 'all') records = records.filter(r => r.status === statusFilter);
 
   window._approvedFilteredRecords = records;
 
@@ -1971,23 +1994,20 @@ function renderApprovedRecordsTable() {
         <td class="font-mono">${r.id}</td>
         <td>${r.department}</td>
         <td>${r.period}</td>
-        <td>${(r.env.carbon || 0).toLocaleString()}</td>
-        <td>${(r.env.energy || 0).toLocaleString()}</td>
-        <td>${(r.env.water || 0).toLocaleString()}</td>
-        <td>${r.soc.employees || 0}</td>
         <td>${displayDate}</td>
         <td><span class="badge ${badgeClass}">${displayStatus}</span></td>
         <td>
-          <div class="actions-cell esg-actions-cell">
-            <button class="action-btn-sm btn-view-detail" onclick="openEsgViewModal('${r.id}')" title="View Details" aria-label="View Details">
-              <i data-lucide="eye"></i><span class="action-btn-label">View</span>
+          <div class="esg-icon-actions">
+            <button class="esg-icon-btn esg-icon-btn--view" onclick="openEsgViewModal('${r.id}')" title="View Details" aria-label="View Details">
+              <i data-lucide="eye"></i>
             </button>
-            <button class="action-btn-sm btn-revalidate" onclick="revalidateRecord('${r.id}')" title="Revalidate in Validation View" aria-label="Revalidate">
-              <i data-lucide="shield-check"></i><span class="action-btn-label">Revalidate</span>
-            </button>
-            <button class="action-btn-sm btn-edit-rec" onclick="editRecord('${r.id}')" title="Edit and Resubmit" aria-label="Edit">
-              <i data-lucide="pencil"></i><span class="action-btn-label">Edit</span>
-            </button>
+            ${r.status !== 'Approved' ? `
+            <button class="esg-icon-btn esg-icon-btn--edit" onclick="editRecord('${r.id}')" title="Edit & Resubmit" aria-label="Edit">
+              <i data-lucide="pencil"></i>
+            </button>` : `
+            <button class="esg-icon-btn esg-icon-btn--approved" disabled title="Approved — no edits needed" aria-label="Approved">
+              <i data-lucide="check"></i>
+            </button>`}
           </div>
         </td>
       </tr>
@@ -2123,9 +2143,6 @@ function openEsgViewModal(recordId) {
   const actBtns = document.getElementById('evm-action-buttons');
   if (r.status === 'Pending') {
     actBtns.innerHTML = `
-      <button class="btn btn-outline text-danger" onclick="closeEsgViewModal(); setTimeout(()=>revalidateRecord('${r.id}'),100);">
-        <i data-lucide="shield-alert"></i> Go to Validation
-      </button>
       <button class="btn btn-primary" onclick="closeEsgViewModal(); editRecord('${r.id}');">
         <i data-lucide="pencil"></i> Edit Record
       </button>
@@ -2133,15 +2150,11 @@ function openEsgViewModal(recordId) {
   } else if (r.status === 'Rejected') {
     actBtns.innerHTML = `
       <button class="btn btn-primary" onclick="closeEsgViewModal(); editRecord('${r.id}');">
-        <i data-lucide="pencil"></i> Edit & Resubmit
+        <i data-lucide="pencil"></i> Edit &amp; Resubmit
       </button>
     `;
   } else {
-    actBtns.innerHTML = `
-      <button class="btn btn-outline" onclick="closeEsgViewModal(); revalidateRecord('${r.id}');">
-        <i data-lucide="shield-check"></i> Revalidate
-      </button>
-    `;
+    actBtns.innerHTML = '';
   }
 
   document.getElementById('esg-view-modal').classList.remove('hidden');
@@ -2634,7 +2647,8 @@ function handleReportScopeChange() {
 }
 
 function triggerGenerateReport() {
-  const type = document.getElementById('rep-type').value;
+  const typeRadio = document.querySelector('input[name="rep-type-radio"]:checked');
+  const type = typeRadio ? typeRadio.value : 'Standard';
   const format = document.getElementById('rep-format').value;
   const scope = document.getElementById('rep-time-scope').value;
   const period = document.getElementById('rep-time-period').value;
@@ -2648,12 +2662,19 @@ function triggerGenerateReport() {
 
   const cleanPeriod = period.split(' ')[0].replace(/[^a-zA-Z0-9]/g, '');
   const today = new Date().toISOString().split('T')[0];
-  const reportName = `ESG_${type}_Report_${cleanPeriod}_${today.replace(/-/g, '_')}`;
+
+  // Use custom name if provided, otherwise auto-generate
+  const customName = (document.getElementById('rep-name')?.value || '').trim();
+  const reportName = customName
+    ? customName.replace(/\s+/g, '_')
+    : `ESG_${type}_Report_${cleanPeriod}_${today.replace(/-/g, '_')}`;
+
   const size = (Math.random() * (4.2 - 1.2) + 1.2).toFixed(1) + ' MB';
 
   const generatedReport = {
     id: `REP-${today.replace(/-/g, '')}-${String(Date.now()).slice(-4)}`,
     name: reportName,
+    displayName: customName || reportName.replace(/_/g, ' '),
     dateGenerated: today,
     reportType: `${type} (${scope})`,
     format,
@@ -2701,54 +2722,205 @@ function triggerGenerateReport() {
   updateNotificationBadge();
   renderNotificationsList();
 
-  // Close the generator modal
-  closeReportGeneratorModal();
+  // Clear name field
+  const nameInput = document.getElementById('rep-name');
+  if (nameInput) nameInput.value = '';
 
+  closeReportGeneratorModal();
   lucide.createIcons();
-  showToast(`Report "${reportName}" generated successfully and added to the archive!`, 'success');
+  showToast(`Report "${reportName}" generated successfully!`, 'success');
 }
 
 function renderReportArchives() {
-  const tbody = document.getElementById('report-archives-body');
-  if (!tbody) return;
+  const container = document.getElementById('report-archives-body');
+  if (!container) return;
 
   const archives = Array.isArray(appState.reportArchives) ? appState.reportArchives : [];
   if (archives.length === 0) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="7" class="empty-state-row">No reports have been generated yet. Click "Generate New Report" to create one.</td>
-      </tr>
+    container.innerHTML = `
+      <div class="report-empty-state">
+        <div class="report-empty-icon"><i data-lucide="file-x"></i></div>
+        <h4>No reports yet</h4>
+        <p>Click "Generate New Report" to create your first ESG compliance report.</p>
+      </div>
     `;
+    lucide.createIcons();
     return;
   }
 
-  tbody.innerHTML = archives.map(report => {
-    let formatBadge = 'badge-approved';
-    if (report.format === 'PDF') formatBadge = 'badge-pdf';
-    else if (report.format === 'Excel') formatBadge = 'badge-success';
-    else if (report.format === 'CSV') formatBadge = 'badge-pending';
+  container.innerHTML = archives.map(report => {
+    const displayName = report.displayName || report.name.replace(/_/g, ' ');
+    const focusTags = (report.focusAreas || []).map(f =>
+      `<span class="report-focus-tag">${f}</span>`
+    ).join('');
+
+    let formatColor = '#4f6b82';
+    let formatIcon = 'file-text';
+    if (report.format === 'PDF') { formatColor = '#e11d48'; formatIcon = 'file-text'; }
+    else if (report.format === 'Excel') { formatColor = '#16a34a'; formatIcon = 'file-spreadsheet'; }
+    else if (report.format === 'CSV') { formatColor = '#0891b2'; formatIcon = 'table'; }
+
+    let typeGradient = 'linear-gradient(135deg, #4f6b82, #708fa6)';
+    if (report.reportType && report.reportType.startsWith('GRI')) typeGradient = 'linear-gradient(135deg, #16a34a, #0d9488)';
+    else if (report.reportType && report.reportType.startsWith('TCFD')) typeGradient = 'linear-gradient(135deg, #ea580c, #dc2626)';
+    else if (report.reportType && report.reportType.startsWith('Environmental')) typeGradient = 'linear-gradient(135deg, #0891b2, #0d9488)';
+
     return `
-      <tr>
-        <td><strong>${report.name}</strong></td>
-        <td>${report.dateGenerated}</td>
-        <td>${report.reportType}</td>
-        <td><span class="badge ${formatBadge}">${report.format}</span></td>
-        <td>${report.size}</td>
-        <td>
-          <div class="actions-cell" style="gap:0.4rem;">
-            <button class="btn btn-outline btn-sm" onclick="downloadReportArchive('${report.id}')">
+      <div class="report-card" id="rcard-${report.id}">
+        <div class="report-card-accent" style="background:${typeGradient}"></div>
+        <div class="report-card-body">
+          <div class="report-card-top">
+            <div class="report-card-icon" style="background:${typeGradient}">
+              <i data-lucide="${formatIcon}"></i>
+            </div>
+            <div class="report-card-info">
+              <h4 class="report-card-name" title="${displayName}">${displayName}</h4>
+              <p class="report-card-type">${report.reportType || 'Standard'}</p>
+            </div>
+            <span class="report-format-badge" style="color:${formatColor};border-color:${formatColor}">${report.format}</span>
+          </div>
+
+          <div class="report-card-meta">
+            <span><i data-lucide="calendar"></i> ${report.dateGenerated}</span>
+            <span><i data-lucide="database"></i> ${report.approvedCount || '—'} records</span>
+            <span><i data-lucide="hard-drive"></i> ${report.size || '—'}</span>
+          </div>
+
+          ${focusTags ? `<div class="report-focus-tags">${focusTags}</div>` : ''}
+
+          <div class="report-card-actions">
+            <button class="btn btn-outline btn-sm report-btn-view" onclick="openReportViewerModal('${report.id}')">
+              <i data-lucide="eye"></i> View
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="downloadReportArchive('${report.id}')">
               <i data-lucide="download"></i> Download
             </button>
-            <button class="btn btn-primary btn-sm" onclick="openShareReportModal('${report.id}')">
+            <button class="btn btn-outline btn-sm" onclick="openShareReportModal('${report.id}')">
               <i data-lucide="share-2"></i> Share
             </button>
           </div>
-        </td>
-      </tr>
+        </div>
+      </div>
     `;
   }).join('');
 
   lucide.createIcons();
+}
+
+/* ================= REPORT VIEWER MODAL ================= */
+let _currentViewReportId = null;
+
+function openReportViewerModal(reportId) {
+  const report = (appState.reportArchives || []).find(r => r.id === reportId);
+  if (!report) return;
+  _currentViewReportId = reportId;
+
+  const displayName = report.displayName || report.name.replace(/_/g, ' ');
+  document.getElementById('rview-title').textContent = displayName;
+  document.getElementById('rview-meta').textContent =
+    `${report.reportType} · ${report.format} · Generated ${report.dateGenerated}`;
+
+  // Stats bar
+  const stats = document.getElementById('rview-stats');
+  const approvedRecords = appState.records.filter(r => r.status === 'Approved');
+  const focusList = (report.focusAreas || []).join(', ') || 'All metrics';
+  stats.innerHTML = `
+    <div class="rview-stat"><span class="rview-stat-val">${report.approvedCount || approvedRecords.length}</span><span class="rview-stat-lbl">Records Included</span></div>
+    <div class="rview-stat"><span class="rview-stat-val">${report.format}</span><span class="rview-stat-lbl">Output Format</span></div>
+    <div class="rview-stat"><span class="rview-stat-val">${report.size || '—'}</span><span class="rview-stat-lbl">File Size</span></div>
+    <div class="rview-stat"><span class="rview-stat-val">${report.dateGenerated}</span><span class="rview-stat-lbl">Generated On</span></div>
+  `;
+
+  // Preview content
+  const content = document.getElementById('rview-content');
+  const records = approvedRecords.slice(0, 8); // preview first 8
+
+  const focusAreas = report.focusAreas || ['carbon','energy','water','social','governance'];
+  const totalCarbon = approvedRecords.reduce((s,r) => s + (r.env?.carbon || 0), 0);
+  const totalEnergy = approvedRecords.reduce((s,r) => s + (r.env?.energy || 0), 0);
+  const totalWater  = approvedRecords.reduce((s,r) => s + (r.env?.water  || 0), 0);
+  const totalEmps   = approvedRecords.reduce((s,r) => s + (r.soc?.employees || 0), 0);
+
+  content.innerHTML = `
+    <div class="rview-section">
+      <h4 class="rview-section-title"><i data-lucide="bar-chart-2"></i> Executive Summary</h4>
+      <div class="rview-summary-grid">
+        ${focusAreas.includes('carbon') ? `
+        <div class="rview-summary-card" style="border-left:4px solid #4f6b82">
+          <span class="rview-summary-label">Total Carbon Emissions</span>
+          <span class="rview-summary-value">${totalCarbon.toLocaleString()} tCO2e</span>
+        </div>` : ''}
+        ${focusAreas.includes('energy') ? `
+        <div class="rview-summary-card" style="border-left:4px solid #f59e0b">
+          <span class="rview-summary-label">Total Energy Consumed</span>
+          <span class="rview-summary-value">${totalEnergy.toLocaleString()} kWh</span>
+        </div>` : ''}
+        ${focusAreas.includes('water') ? `
+        <div class="rview-summary-card" style="border-left:4px solid #0891b2">
+          <span class="rview-summary-label">Total Water Usage</span>
+          <span class="rview-summary-value">${totalWater.toLocaleString()} m³</span>
+        </div>` : ''}
+        ${focusAreas.includes('social') ? `
+        <div class="rview-summary-card" style="border-left:4px solid #16a34a">
+          <span class="rview-summary-label">Total Employees</span>
+          <span class="rview-summary-value">${totalEmps.toLocaleString()}</span>
+        </div>` : ''}
+      </div>
+    </div>
+
+    <div class="rview-section">
+      <h4 class="rview-section-title"><i data-lucide="list"></i> Included Records (Preview — first ${records.length} of ${approvedRecords.length})</h4>
+      <div class="rview-table-wrap">
+        <table class="rview-table">
+          <thead>
+            <tr>
+              <th>Record ID</th>
+              <th>Department</th>
+              <th>Period</th>
+              <th>Carbon (tCO2e)</th>
+              <th>Energy (kWh)</th>
+              <th>Water (m³)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${records.map(r => `
+            <tr>
+              <td class="font-mono">${r.id}</td>
+              <td>${r.department}</td>
+              <td>${r.period}</td>
+              <td>${(r.env?.carbon || 0).toLocaleString()}</td>
+              <td>${(r.env?.energy || 0).toLocaleString()}</td>
+              <td>${(r.env?.water  || 0).toLocaleString()}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      ${approvedRecords.length > 8 ? `<p class="rview-truncate-note">+ ${approvedRecords.length - 8} more records included in the full download.</p>` : ''}
+    </div>
+
+    <div class="rview-section">
+      <h4 class="rview-section-title"><i data-lucide="target"></i> Metric Focus Areas</h4>
+      <div class="rview-focus-list">
+        ${(report.focusAreas || ['All metrics']).map(f =>
+          `<span class="report-focus-tag report-focus-tag-lg">${f}</span>`
+        ).join('')}
+      </div>
+    </div>
+  `;
+
+  document.getElementById('report-viewer-modal').classList.remove('hidden');
+  lucide.createIcons();
+}
+
+function closeReportViewerModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  document.getElementById('report-viewer-modal').classList.add('hidden');
+  _currentViewReportId = null;
+}
+
+function downloadFromViewer() {
+  if (!_currentViewReportId) return;
+  downloadReportArchive(_currentViewReportId);
 }
 
 /* ================= REPORT DOWNLOAD — PROPER FORMATTED TEMPLATES ================= */
@@ -3087,19 +3259,7 @@ function toggleDarkMode(enabled) {
   updateDashboardCharts();
 }
 
-function toggleColorblindModeBtn() {
-  const isActive = document.body.classList.toggle('colorblind');
-  const checkbox = document.getElementById('set-colorblind-mode');
-  if (checkbox) checkbox.checked = isActive;
-}
 
-function toggleColorblindMode(enabled) {
-  if (enabled) {
-    document.body.classList.add('colorblind');
-  } else {
-    document.body.classList.remove('colorblind');
-  }
-}
 
 
 /* ================= TOAST NOTIFICATION SYSTEM ================= */
